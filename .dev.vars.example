@@ -36,3 +36,8 @@ CF_TOKEN=your_api_token_with_zone_email_permissions
 # S3_REGION=us-east-1
 # S3_ACCESS_KEY_ID=AKIA...
 # S3_SECRET_ACCESS_KEY=your_secret_access_key
+
+# Optional: require a Cloudflare Access login in front of the app (see docs/access.md).
+# Set both, as printed by scripts/setup-access.mjs. Leave unset for local development and Docker.
+# CF_ACCESS_TEAM_DOMAIN=yourteam.cloudflareaccess.com
+# CF_ACCESS_AUD=application_audience_tag
