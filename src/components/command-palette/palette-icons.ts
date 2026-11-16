@@ -1,0 +1,43 @@
+import {
+	Archive,
+	CalendarClock,
+	CalendarDays,
+	Clock,
+	FileText,
+	Folder,
+	HardDrive,
+	HelpCircle,
+	Inbox,
+	Mail,
+	MailPlus,
+	Palette,
+	Send,
+	Settings,
+	ShieldAlert,
+	ShieldCheck,
+	Star,
+	Trash2,
+} from "@/components/icons";
+import type { CommandItem } from "@/components/shortcuts/types";
+import type { PaletteIconName } from "./palette-entries-utils";
+
+export const paletteIcons: Record<PaletteIconName, NonNullable<CommandItem["icon"]>> = {
+	compose: MailPlus,
+	inbox: Inbox,
+	starred: Star,
+	snoozed: Clock,
+	sent: Send,
+	drafts: FileText,
+	archived: Archive,
+	spam: ShieldAlert,
+	trash: Trash2,
+	folder: Folder,
+	mailbox: Mail,
+	calendar: CalendarDays,
+	booking: CalendarClock,
+	drive: HardDrive,
+	settings: Settings,
+	admin: ShieldCheck,
+	theme: Palette,
+	help: HelpCircle,
+};

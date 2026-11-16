@@ -1,22 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useCallback, useContext, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Inbox,
-  Star,
-  Clock,
-  Send,
-  FileText,
-  Archive,
-  ShieldAlert,
-  Trash2,
-  MailPlus,
-  Settings,
-  HelpCircle,
-} from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { useCompose } from "@/components/compose/compose-context";
+import { usePaletteCommands } from "@/components/command-palette/use-palette-commands";
 import type { ShortcutDefinition, CommandItem } from "./types";
 import { useHotkeys } from "./use-hotkeys";
 import { CommandPalette } from "./command-palette";
@@ -79,6 +67,7 @@ export function ShortcutsProvider({
   const openHelpModal = () => {
     if (shortcutsEnabled && !shortcutsPreferenceLoading) setIsHelpModalOpen(true);
   };
+  const openHelp = useCallback(() => setIsHelpModalOpen(true), []);
   const closeHelpModal = () => setIsHelpModalOpen(false);
 
   const registerShortcut = (shortcut: ShortcutDefinition) => {
@@ -204,103 +193,14 @@ export function ShortcutsProvider({
 
   useHotkeys(baseShortcuts, { enabled: shortcutsEnabled && !shortcutsPreferenceLoading });
 
-  // Base Command Palette actions
-  const allCommands = useMemo<CommandItem[]>(() => {
-    const builtins: CommandItem[] = [
-      {
-        id: "compose",
-        title: t("palette.composeTitle"),
-        subtitle: t("palette.composeSubtitle"),
-        category: "Actions",
-        icon: MailPlus,
-        shortcut: "c",
-        perform: () => openComposer(),
-      },
-      {
-        id: "nav-inbox",
-        title: t("shortcut.goInbox"),
-        category: "Navigation",
-        icon: Inbox,
-        shortcut: "g i",
-        perform: () => router.push("/inbox"),
-      },
-      {
-        id: "nav-starred",
-        title: t("shortcut.goStarred"),
-        category: "Navigation",
-        icon: Star,
-        shortcut: "g s",
-        perform: () => router.push("/starred"),
-      },
-      {
-        id: "nav-snoozed",
-        title: t("shortcut.goSnoozed"),
-        category: "Navigation",
-        icon: Clock,
-        shortcut: "g z",
-        perform: () => router.push("/snoozed"),
-      },
-      {
-        id: "nav-sent",
-        title: t("shortcut.goSent"),
-        category: "Navigation",
-        icon: Send,
-        shortcut: "g t",
-        perform: () => router.push("/sent"),
-      },
-      {
-        id: "nav-drafts",
-        title: t("shortcut.goDrafts"),
-        category: "Navigation",
-        icon: FileText,
-        shortcut: "g d",
-        perform: () => router.push("/drafts"),
-      },
-      {
-        id: "nav-archived",
-        title: t("shortcut.goArchived"),
-        category: "Navigation",
-        icon: Archive,
-        shortcut: "g a",
-        perform: () => router.push("/archived"),
-      },
-      {
-        id: "nav-spam",
-        title: t("shortcut.goSpam"),
-        category: "Navigation",
-        icon: ShieldAlert,
-        shortcut: "g !",
-        perform: () => router.push("/spam"),
-      },
-      {
-        id: "nav-trash",
-        title: t("shortcut.goTrash"),
-        category: "Navigation",
-        icon: Trash2,
-        shortcut: "g x",
-        perform: () => router.push("/trash"),
-      },
-      {
-        id: "settings-account",
-        title: t("palette.accountTitle"),
-        subtitle: t("palette.accountSubtitle"),
-        category: "Settings",
-        icon: Settings,
-        perform: () => router.push("/settings/account"),
-      },
-      {
-        id: "show-help",
-        title: t("palette.helpTitle"),
-        subtitle: t("palette.helpSubtitle"),
-        category: "General",
-        icon: HelpCircle,
-        shortcut: "?",
-        perform: () => setIsHelpModalOpen(true),
-      },
-    ];
-
-    return [...builtins, ...customCommands];
-  }, [router, openComposer, customCommands, t]);
+  const { commands: builtinCommands, searchMail } = usePaletteCommands({
+    open: isCommandPaletteOpen,
+    showHelp: openHelp,
+  });
+  const allCommands = useMemo<CommandItem[]>(
+    () => [...builtinCommands, ...customCommands],
+    [builtinCommands, customCommands]
+  );
 
   return (
     <ShortcutsContext.Provider
@@ -326,6 +226,7 @@ export function ShortcutsProvider({
             isOpen={isCommandPaletteOpen}
             onClose={closeCommandPalette}
             commands={allCommands}
+            onSearchMail={searchMail}
           />
           <ShortcutsHelpDialog
             isOpen={isHelpModalOpen}

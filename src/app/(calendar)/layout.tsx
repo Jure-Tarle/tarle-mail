@@ -17,6 +17,7 @@ import { MailboxSelector } from "@/components/mailbox-selector";
 import { SidebarAside, MobileMenuButton } from "@/components/sidebar-aside";
 import { SidebarProvider } from "@/components/sidebar-state";
 import { ShortcutsProvider } from "@/components/shortcuts";
+import { CommandPaletteButton } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
 import { CalendarLogoBlock } from "./calendar-logo-block";
@@ -64,6 +65,7 @@ export default function CalendarLayout({ children }: { children: React.ReactNode
                       </nav>
                       <div id="calendar-header-slot" className="flex min-w-0 flex-1 items-center md:min-w-max max-md:order-last max-md:basis-full max-md:pl-3 max-md:empty:hidden" />
                     </div>
+                    <CommandPaletteButton />
                     {assistantEnabled && <Button type="button" variant="ghost" size="sm" className={assistantOpen ? "bg-blue-50 text-blue-700" : "text-neutral-600"} onClick={() => { setAssistantOpen((current) => !current); setAssistantFullSize(false); }} aria-label={assistantOpen ? t("agent.assistant.close") : t("agent.assistant.open")} aria-expanded={assistantOpen} aria-controls="email-assistant-panel"><Sparkles className="h-5 w-5" /></Button>}
                     <MailboxSelector />
                   </header>

@@ -13,6 +13,7 @@ import { MailboxSelector } from "@/components/mailbox-selector";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { SidebarProvider } from "@/components/sidebar-state";
 import { ShortcutsProvider } from "@/components/shortcuts";
+import { CommandPaletteButton } from "@/components/command-palette";
 import { SidebarAside, MobileMenuButton } from "@/components/sidebar-aside";
 import { RouteTitle } from "@/components/route-title";
 
@@ -38,6 +39,7 @@ export default function DashboardLayout({
                     <header className="flex h-16 w-full shrink-0 items-center gap-4 pr-4 text-sm">
                       <MobileMenuButton className="ml-2" />
                       <MailSearchInput />
+                      <CommandPaletteButton className="sm:hidden" />
                       {/* <Link
                     href="/settings/account"
                     className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-200"
