@@ -66,7 +66,30 @@ export type DomainDnsView = {
 	audit?: DomainDnsAudit;
 };
 
-export type DomainDnsCache = Record<string, { domain: Domain; dns: DomainDnsView }>;
+export type HealthStatus = "ok" | "missing" | "wrong" | "unknown" | "skipped";
+export type HealthCheckId = "mx" | "spf" | "dkim" | "dmarc" | "routing" | "catchAll";
+
+export type HealthCheck = {
+	id: HealthCheckId;
+	label: string;
+	status: HealthStatus;
+	message: string;
+	found: string[];
+	expected: string[];
+};
+
+export type DomainHealth = {
+	hostname: string;
+	manual: boolean;
+	checkedAt: string;
+	checks: HealthCheck[];
+	/** The repairs a click would make, each with the key the server expects back. */
+	plan: { key: string; checkId: HealthCheckId; summary: string }[];
+};
+
+export type RepairResult = { key: string; summary: string; ok: boolean; error?: string };
+
+export type DomainDnsCache =Record<string, { domain: Domain; dns: DomainDnsView }>;
 
 export type DomainDnsDetailsProps = {
 	domain: Domain;

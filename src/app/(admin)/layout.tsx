@@ -32,6 +32,7 @@ const primaryOnlyPrefixes = [
   "/audit-logs",
   "/general",
   "/ai-usage",
+  "/usage",
 ];
 
 export default function DashboardLayout({
