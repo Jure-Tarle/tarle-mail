@@ -49,6 +49,11 @@ function textPart(type: "text/plain" | "text/html", body: string): string {
 	return `Content-Type: ${type}; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${base64Part(encoder.encode(body))}`;
 }
 
+/** Client-supplied values written into a MIME part header (type, Content-ID) lose CR, LF and other control characters. */
+function headerToken(value: string | null | undefined): string {
+	return (value ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
+}
+
 function quoteParam(value: string): string {
 	return `"${encodeHeaderText(value).replace(/\r\n /g, "").replace(/[\\"]/g, "\\$&")}"`;
 }
@@ -76,14 +81,14 @@ export function buildMime(message: OutboundProviderMessage, messageId: string, d
 	if (inline.length && message.html) {
 		body = multipart("related", [
 			body,
-			...inline.map((file) => `Content-Type: ${file.type}; name=${quoteParam(file.filename)}\r\nContent-Transfer-Encoding: base64\r\nContent-ID: <${file.contentId.replace(/^<|>$/g, "")}>\r\nContent-Disposition: inline; filename=${quoteParam(file.filename)}\r\n\r\n${base64Part(file.content)}`),
+			...inline.map((file) => `Content-Type: ${headerToken(file.type)}; name=${quoteParam(file.filename)}\r\nContent-Transfer-Encoding: base64\r\nContent-ID: <${headerToken(file.contentId.replace(/^<|>$/g, ""))}>\r\nContent-Disposition: inline; filename=${quoteParam(file.filename)}\r\n\r\n${base64Part(file.content)}`),
 		]);
 	}
 	const attached = inline.length && message.html ? files : attachments;
 	if (attached.length) {
 		body = multipart("mixed", [
 			body,
-			...attached.map((file) => `Content-Type: ${file.type || "application/octet-stream"}; name=${quoteParam(file.filename)}\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=${quoteParam(file.filename)}\r\n\r\n${base64Part(file.content)}`),
+			...attached.map((file) => `Content-Type: ${headerToken(file.type) || "application/octet-stream"}; name=${quoteParam(file.filename)}\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=${quoteParam(file.filename)}\r\n\r\n${base64Part(file.content)}`),
 		]);
 	}
 

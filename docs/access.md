@@ -78,3 +78,8 @@ The list lives in [`src/lib/security/access-bypass.ts`](../src/lib/security/acce
 If you use none of the API clients or the mobile app, delete the `api-clients` group from both lists (and its Access application) to keep the password sign-in endpoint behind Access as well.
 
 Requests that reach the Worker through its own service binding carry no Access token; the app does not make any.
+
+### The API is protected by its own login, not by Access
+
+The `api-clients` group stays outside Access on purpose, so mail apps (JMAP), the mobile app, MCP clients and scripts keep working. These paths accept only API keys, app passwords or the mobile password sign-in (`/api/auth/device`, rate limited). Anyone who can reach the hostname can try those credentials, so turn on two-factor sign-in for every account and keep API keys scoped. If you use none of these clients, delete the `api-clients` group from `src/lib/security/access-bypass.ts` and `scripts/setup-access.mjs` and re-run the script.
+

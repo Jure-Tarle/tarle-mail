@@ -59,9 +59,10 @@ class SmtpIo {
 		await this.writer.write(encoder.encode(data));
 	}
 
-	async command(line: string, expect: number[], secret = false): Promise<Reply> {
+	/** `label` replaces the line in error messages; pass one whenever the line carries a credential. */
+	async command(line: string, expect: number[], label?: string): Promise<Reply> {
 		await this.write(`${line}\r\n`);
-		return this.expect(await this.reply(), expect, secret ? `${line.split(" ")[0]} ...` : line);
+		return this.expect(await this.reply(), expect, label ?? line);
 	}
 
 	expect(reply: Reply, expect: number[], what: string): Reply {
@@ -75,7 +76,8 @@ const base64Text = (value: string) => btoa(String.fromCharCode(...encoder.encode
 
 /** Lines that start with a dot get a second one (RFC 5321 section 4.5.2). */
 export function dotStuff(raw: string): string {
-	return raw.replace(/\r?\n/g, "\r\n").replace(/(^|\r\n)\./g, "$1..");
+	// A lone CR counts as a line break too, so "\r.\r\n" cannot end DATA early on a lenient server (SMTP smuggling).
+	return raw.replace(/\r\n|\r|\n/g, "\r\n").replace(/(^|\r\n)\./g, "$1..");
 }
 
 /** Port 25 is blocked on Workers and unauthenticated relaying belongs to an MTA, so only submission ports are used. */
@@ -108,11 +110,11 @@ async function smtpSession<T>(config: SmtpConfig, connect: SmtpConnect, heloName
 		if (config.username) {
 			const methods = (/^AUTH[ =](.*)$/im.exec(ehlo.text)?.[1] ?? "").toUpperCase();
 			if (methods.includes("PLAIN") || !methods.includes("LOGIN")) {
-				await io.command(`AUTH PLAIN ${base64Text(`\0${config.username}\0${config.password}`)}`, [235], true);
+				await io.command(`AUTH PLAIN ${base64Text(`\0${config.username}\0${config.password}`)}`, [235], "AUTH PLAIN ...");
 			} else {
 				await io.command("AUTH LOGIN", [334]);
-				await io.command(base64Text(config.username), [334], true);
-				await io.command(base64Text(config.password), [235], true);
+				await io.command(base64Text(config.username), [334], "AUTH LOGIN username");
+				await io.command(base64Text(config.password), [235], "AUTH LOGIN password");
 			}
 		}
 		const result = await work(io);

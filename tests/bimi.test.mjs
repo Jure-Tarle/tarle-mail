@@ -336,15 +336,15 @@ test("extracts the sender domain", () => {
 	assert.equal(bimi.senderDomain("no address"), null);
 });
 
-test("sender logos are on unless the setting turns them off", async () => {
+test("sender logos are off unless the setting turns them on (no VMC/CMC check, so opt-in)", async () => {
 	const bucket = memoryBucket();
-	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: true });
-	await bimi.setBimiSettings(bucket, { senderLogos: false });
 	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: false });
 	await bimi.setBimiSettings(bucket, { senderLogos: true });
 	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: true });
+	await bimi.setBimiSettings(bucket, { senderLogos: false });
+	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: false });
 	bucket.objects.set("bimi/settings.json", { body: new TextEncoder().encode("{broken") });
-	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: true });
+	assert.deepEqual(await bimi.getBimiSettings(bucket), { senderLogos: false });
 });
 
 test("a sender logo is cached, and so is its absence, until the time to live passes", async () => {

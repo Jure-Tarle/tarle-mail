@@ -214,7 +214,7 @@ function fakeSmtpServer({ replies = {}, ehlo = ["250-fake.example", "250-STARTTL
 			}
 			if (state.authStep) {
 				log.push(`${state.authStep}:<redacted>`);
-				if (state.authStep === "user") { state.authStep = "pass"; send("334 UGFzc3dvcmQ6\r\n"); } else { state.authStep = null; send("235 ok\r\n"); }
+				if (state.authStep === "user") { state.authStep = "pass"; send("334 UGFzc3dvcmQ6\r\n"); } else { state.authStep = null; send(replies.AUTH_LOGIN_PASSWORD ?? "235 ok\r\n"); }
 				return;
 			}
 			log.push(line);
@@ -292,6 +292,28 @@ test("SMTP over implicit TLS skips STARTTLS and falls back to AUTH LOGIN when PL
 
 test("SMTP dot-stuffing doubles a leading dot and normalises line endings", () => {
 	assert.equal(smtp.dotStuff("a\n.b\r\n..c"), "a\r\n..b\r\n...c");
+});
+
+test("SMTP dot-stuffing treats a lone CR as a line break, so a smuggled end-of-data is stuffed", () => {
+	assert.equal(smtp.dotStuff("a\r.\r\nMAIL FROM:<x@y>"), "a\r\n..\r\nMAIL FROM:<x@y>");
+});
+
+test("a rejected AUTH LOGIN never puts the encoded username or password into the error", async () => {
+	const server = fakeSmtpServer({ ehlo: ["250-fake.example", "250 AUTH LOGIN"], replies: { AUTH_LOGIN_PASSWORD: "535 bad credentials\r\n" } });
+	const failure = await smtp.checkSmtp({ ...smtpConfig, port: 465, security: "tls" }, server.connect).catch((error) => error);
+	assert.ok(failure instanceof Error);
+	assert.match(failure.message, /AUTH LOGIN password: 535/);
+	for (const secret of [smtpConfig.password, smtpConfig.username]) {
+		assert.ok(!failure.message.includes(Buffer.from(secret).toString("base64")), "no base64 credential in the error");
+	}
+});
+
+test("MIME part headers drop CR and LF from a client-supplied attachment type and Content-ID", () => {
+	const raw = mime.buildMime({ from: "a@example.com", to: ["b@example.net"], subject: "Hi", text: "x", html: "<img src=cid:x>", attachments: [
+		{ filename: "a.txt", type: "text/plain\r\nX-Injected: 1", content: new Uint8Array([65]), disposition: "attachment" },
+		{ filename: "i.png", type: "image/png", content: new Uint8Array([1]), disposition: "inline", contentId: "x\r\nX-Injected: 2" },
+	] }, "<id@example.com>");
+	assert.ok(!/\r\nX-Injected:/.test(raw));
 });
 
 test("SMTP refuses port 25 and unsafe addresses before connecting", async () => {

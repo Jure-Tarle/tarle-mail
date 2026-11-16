@@ -93,6 +93,9 @@ async function readSendingNeeds(env: CloudflareEnv, domain: DomainRow, dns: Awai
 			.map((record): ExpectedRecord => ({ type: "TXT", name: normalizeHost(record.name ?? ""), content: normalizeTxt(record.content), ttl: record.ttl && record.ttl > 1 ? record.ttl : undefined }));
 		return { dkim, spf, setup: dns.sendingSubdomain ? undefined : { kind: "sending-subdomain" } };
 	}
+	// Brevo, Mailjet and SMTP servers keep their own sender authentication; their records are set up in the
+	// provider's dashboard, so there is nothing this check can compare or repair.
+	if (domain.sendingProvider === "brevo" || domain.sendingProvider === "mailjet" || domain.sendingProvider === "smtp") return { dkim: [], spf: [] };
 	try {
 		if (domain.sendingProvider === "resend") {
 			const view = await getResendDomainView(env, domain);

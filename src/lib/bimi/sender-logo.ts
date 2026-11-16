@@ -18,15 +18,15 @@ const HEADER_SCAN_BYTES = 64 * 1024;
 
 export type BimiSettings = { senderLogos: boolean };
 
-/** The switch for showing senders' logos. It lives in R2 beside the logos because it needs no table; on by default. */
+/** The switch for showing senders' logos, kept in R2 beside the logos (no table). Off by default: without a VMC/CMC check a lookalike domain could show a brand's logo next to phishing. */
 export async function getBimiSettings(bucket: Bucket): Promise<BimiSettings> {
 	const object = await bucket.get(SETTINGS_KEY);
-	if (!object) return { senderLogos: true };
+	if (!object) return { senderLogos: false };
 	try {
 		const parsed = JSON.parse(await object.text()) as { senderLogos?: unknown };
-		return { senderLogos: parsed.senderLogos !== false };
+		return { senderLogos: parsed.senderLogos === true };
 	} catch {
-		return { senderLogos: true };
+		return { senderLogos: false };
 	}
 }
 
