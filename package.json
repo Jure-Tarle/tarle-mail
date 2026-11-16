@@ -163,5 +163,11 @@
   "type": "module",
   "optionalDependencies": {
     "@electric-sql/pglite": "^0.5.11"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260926.1": true
   }
 }
