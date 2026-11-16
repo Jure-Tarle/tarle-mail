@@ -31,6 +31,7 @@ test("pages are titled with the most specific matching route", () => {
 	assert.equal(getRouteTitleKey("/settings/api-keys"), "settings.nav.apiKeys");
 	assert.equal(getRouteTitleKey("/accounts/abc/permissions"), "admin.nav.accounts");
 	assert.equal(getRouteTitleKey("/domains"), "admin.nav.domains");
+	assert.equal(getRouteTitleKey("/usage"), "admin.nav.usage");
 });
 
 test("routes that set their own title are left alone", () => {

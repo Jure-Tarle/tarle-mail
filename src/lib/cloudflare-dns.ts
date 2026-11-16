@@ -24,6 +24,31 @@ export async function listDnsRecords(
 	);
 }
 
+/** Every record at `name` regardless of type, so one request answers MX, TXT and CNAME lookups alike. */
+export async function listDnsRecordsByName(
+	env: CloudflareEnv,
+	zoneId: string,
+	name: string,
+): Promise<CfDnsRecord[]> {
+	return cfRequest<CfDnsRecord[]>(
+		env,
+		`/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&per_page=5000`,
+	);
+}
+
+/** Rewrites only the content of one record; its name, type, TTL and any other field stay as they are. */
+export async function updateDnsRecordContent(
+	env: CloudflareEnv,
+	zoneId: string,
+	recordId: string,
+	content: string,
+): Promise<CfDnsRecord> {
+	return cfRequest<CfDnsRecord>(env, `/zones/${zoneId}/dns_records/${recordId}`, {
+		method: "PATCH",
+		body: JSON.stringify({ content }),
+	});
+}
+
 export async function deleteDnsRecord(
 	env: CloudflareEnv,
 	zoneId: string,
