@@ -26,9 +26,9 @@ node scripts/setup-access.mjs --domain mail.example.com --email you@example.com 
 
 `--team` creates the Zero Trust organization `yourteam.cloudflareaccess.com` when the account has none (Zero Trust Free covers up to 50 users). The script also adds the **One-time PIN** login method, so Access emails you a code at sign-in. If creating the organization fails because Zero Trust was never opened on the account, open **Zero Trust** in the dashboard once, pick the Free plan and the team name, then run the script again.
 
-It creates or updates `mail.example.com (login)` (Allow your email, 24 h session) and one `mail.example.com (bypass: <group>)` application per group, then prints the two Worker variables. The token is never printed.
+It creates or updates `mail.example.com (login)` (Allow your email, 24 h session) and one `mail.example.com (public paths)` application holding every bypassed path (Access allows up to 50 per application), then prints the two Worker variables. The token is never printed.
 
-To do it by hand: create a **Self-hosted** application for `mail.example.com` with an Allow policy including your email and session duration 24 hours. Then create one self-hosted application per group below, with every path as a destination (for a prefix, both `mail.example.com/book` and `mail.example.com/book/*`) and a single policy with action **Bypass**, include **Everyone**. Access applies the most specific path, so these win over the domain-wide application.
+To do it by hand: create a **Self-hosted** application for `mail.example.com` with an Allow policy including your email and session duration 24 hours. Then create one self-hosted application with every path of every group below as a destination (for a prefix, both `mail.example.com/book` and `mail.example.com/book/*`) and a single policy with action **Bypass**, include **Everyone**. Access applies the most specific path, so these win over the domain-wide application.
 
 ## 3. Set the Worker variables
 

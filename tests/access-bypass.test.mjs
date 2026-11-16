@@ -133,20 +133,17 @@ test("the setup script's bypass groups mirror src/lib/security/access-bypass.ts"
 
 const domain = "mail.tarle.de";
 
-test("the plan has a login app and one bypass app per group, with matching destinations", () => {
+test("the plan has a login app and a single bypass app holding every group's destinations", () => {
 	const plan = buildPlan({ domain, email: "owner@example.com" });
-	assert.equal(plan.length, 1 + ACCESS_BYPASS_GROUPS.length);
-	const [main, ...bypass] = plan;
+	assert.equal(plan.length, 2);
+	const [main, bypass] = plan;
 	assert.deepEqual(main.destinations, [{ type: "public", uri: domain }]);
 	assert.equal(main.session_duration, "24h");
 	assert.deepEqual(main.policies, [{ name: "Owner", decision: "allow", include: [{ email: { email: "owner@example.com" } }] }]);
-	ACCESS_BYPASS_GROUPS.forEach((group, index) => {
-		const app = bypass[index];
-		assert.ok(app.name.endsWith(`bypass: ${group.id})`));
-		assert.deepEqual(app.destinations.map((destination) => destination.uri), destinationsFor(domain, group.rules));
-		assert.equal(app.domain, app.destinations[0].uri);
-		assert.deepEqual(app.policies, [{ name: "Bypass everyone", decision: "bypass", include: [{ everyone: {} }] }]);
-	});
+	assert.equal(bypass.name, `${domain} (public paths)`);
+	assert.deepEqual(bypass.destinations.map((destination) => destination.uri), ACCESS_BYPASS_GROUPS.flatMap((group) => destinationsFor(domain, group.rules)));
+	assert.equal(bypass.domain, bypass.destinations[0].uri);
+	assert.deepEqual(bypass.policies, [{ name: "Bypass everyone", decision: "bypass", include: [{ everyone: {} }] }]);
 });
 
 test("prefix rules become the bare path and the wildcard form, exact rules one destination", () => {

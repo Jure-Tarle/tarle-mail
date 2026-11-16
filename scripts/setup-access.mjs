@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Creates or updates (idempotently) the Cloudflare Access applications that put a login in front of the app:
 //   - one self-hosted application for the whole domain, with an Allow policy for one email (24 h session);
-//   - one application per bypass group, with a Bypass (everyone) policy, for the paths that external services
+//   - one application with a Bypass (everyone) policy for all the paths that external services
 //     and non-browser clients call (webhooks, public booking and share links, API-key clients, static assets).
 // Usage: CF_ACCOUNT_ID=... CLOUDFLARE_TOKEN=... node scripts/setup-access.mjs --domain mail.example.com --email you@example.com [--team <name>] [--dry-run]
 // The token needs "Access: Apps and Policies Edit". Reading the team domain also needs an Access organization read
@@ -68,14 +68,15 @@ function application(name, domain, destinations, policy) {
 	};
 }
 
-/** The applications this script manages, in creation order: the main one first, then one per bypass group. */
+/**
+ * The two applications this script manages: the login for the whole domain, and one Bypass application that
+ * holds every public path of every group (the groups only document why each path is public).
+ */
 export function buildPlan({ domain, email }) {
 	const main = application(`${domain} (login)`, domain, [domain], { name: "Owner", decision: "allow", include: [{ email: { email } }] });
-	const bypass = BYPASS_GROUPS.map((group) => {
-		const destinations = destinationsFor(domain, group.rules);
-		return application(`${domain} (bypass: ${group.id})`, destinations[0], destinations, { name: "Bypass everyone", decision: "bypass", include: [{ everyone: {} }] });
-	});
-	return [main, ...bypass];
+	const destinations = BYPASS_GROUPS.flatMap((group) => destinationsFor(domain, group.rules));
+	const bypass = application(`${domain} (public paths)`, destinations[0], destinations, { name: "Bypass everyone", decision: "bypass", include: [{ everyone: {} }] });
+	return [main, bypass];
 }
 
 export function parseArgs(argv) {
