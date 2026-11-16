@@ -20,6 +20,8 @@ import {
 } from "@/components/icons";
 import type { DomainItemCardProps } from "./types";
 
+const EXTERNAL_SENDING_NAMES: Record<string, string> = { resend: "Resend", ses: "Amazon SES", brevo: "Brevo", mailjet: "Mailjet", smtp: "SMTP" };
+
 function StatusIcon({ ok, className }: { ok: boolean; className?: string }) {
   if (ok) return <Check className={cn(className, "text-green-600")} />;
   return <AlertTriangle className={cn(className, "text-amber-500")} />;
@@ -91,10 +93,10 @@ export default function DomainItemCard({
                 {t("domains.badge.receivingVia", { provider: item.receivingProvider === "ses" ? "Amazon SES" : "Resend" })}
               </Badge>
             )}
-            {item.sendingProvider === "resend" || item.sendingProvider === "ses" ? (
+            {item.sendingProvider in EXTERNAL_SENDING_NAMES ? (
               <Badge variant="outline" className="gap-1">
                 <StatusIcon ok className="h-3 w-3" />
-                {t("domains.badge.sendingVia", { provider: item.sendingProvider === "ses" ? "Amazon SES" : "Resend" })}
+                {t("domains.badge.sendingVia", { provider: EXTERNAL_SENDING_NAMES[item.sendingProvider] })}
               </Badge>
             ) : item.sendingProvider === "none" ? (
               <Badge variant="secondary" className="gap-1 opacity-50">

@@ -1,6 +1,7 @@
 import { defaultTranslator } from "@/lib/i18n/utils";
 import { confirmDestructive } from "@/components/ui/confirm-dialog";
 import { authFetch } from "@/lib/auth/client";
+import type { SendingProvider } from "./types";
 
 /** A rejected response, keeping the parsed body so callers can read fields beyond `error`. */
 export class ApiError extends Error {
@@ -69,7 +70,8 @@ export type CreateDomainInput = {
 	enableSending?: boolean;
 	replaceMxRecords?: boolean;
 	skipDns?: boolean;
-	sendingProvider?: "none" | "cloudflare" | "resend" | "ses";
+	/** The add form offers Cloudflare, Resend and SES; the other providers are chosen on the domain once it exists. */
+	sendingProvider?: SendingProvider;
 	receivingProvider?: "none" | "cloudflare" | "resend" | "ses";
 };
 

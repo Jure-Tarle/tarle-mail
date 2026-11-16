@@ -12,7 +12,8 @@ import { createAuditLog } from "@/lib/mailboxes/audit";
 import { loadMessageAttachmentContents, storeMessageAttachments, validateAttachments } from "@/lib/email/attachments";
 import type { AttachmentContent } from "@/lib/email/attachment-types";
 import { getOutboundAttachmentMaxMb } from "@/lib/email/attachment-policy";
-import { getOutboundProviderConfig, sendThroughProvider } from "@/lib/email/outbound-provider";
+import { getOutboundProviderChain, sendThroughChain } from "@/lib/email/outbound-provider";
+import { recipientCount } from "@/lib/providers/utils";
 import { prepareCloudflareAttachments } from "@/lib/email/cloud-attachment-utils";
 import { ensureTrackingToken, getTrackingHostForSender } from "@/lib/tracking/open-tracking";
 import { setFollowUp } from "@/lib/follow-ups/service";
@@ -206,26 +207,24 @@ async function deliverEmail(env: CloudflareEnv, delivery: PreparedDelivery): Pro
 	const db = getDb(env);
 	const toAddr = joinEmailAddressList(to);
 	try {
-		const provider = await getOutboundProviderConfig(env, from);
-		// Cloudflare's 5 MiB cap forces big files into download links; Resend takes
-		// the attachments directly (the admin's outgoing limit still applies).
-		const prepared = provider.provider === "cloudflare"
-			? await prepareCloudflareAttachments(env, attachments, {
-				subject: input.subject,
-				html: input.html,
-				text: input.text,
-				headers,
-				publicOrigin: input.publicOrigin,
-			})
-			: { attachments, html: input.html, text: input.text };
-		if (prepared.text !== input.text || prepared.html !== input.html) {
-			await db.update(messages).set({ textBody: prepared.text ?? null, htmlBody: prepared.html ?? null }).where(eq(messages.id, messageId));
-		}
-		const html = input.trackOpens && prepared.html ? await withTrackingPixel(env, messageId, from, prepared.html, input.publicOrigin) : prepared.html;
-		const response = await sendThroughProvider(
-			env,
-			provider,
-			{
+		const chain = await getOutboundProviderChain(env, from);
+		const response = await sendThroughChain(env, chain, recipientCount({ to, cc, bcc }), async (provider) => {
+			// Cloudflare's 5 MiB cap forces big files into download links; the other providers
+			// take the attachments directly (the admin's outgoing limit still applies).
+			const prepared = provider.provider === "cloudflare"
+				? await prepareCloudflareAttachments(env, attachments, {
+					subject: input.subject,
+					html: input.html,
+					text: input.text,
+					headers,
+					publicOrigin: input.publicOrigin,
+				})
+				: { attachments, html: input.html, text: input.text };
+			if (prepared.text !== input.text || prepared.html !== input.html) {
+				await db.update(messages).set({ textBody: prepared.text ?? null, htmlBody: prepared.html ?? null }).where(eq(messages.id, messageId));
+			}
+			const html = input.trackOpens && prepared.html ? await withTrackingPixel(env, messageId, from, prepared.html, input.publicOrigin) : prepared.html;
+			return {
 				from,
 				to,
 				cc,
@@ -241,9 +240,8 @@ async function deliverEmail(env: CloudflareEnv, delivery: PreparedDelivery): Pro
 					disposition: attachment.disposition === "inline" && attachment.contentId ? "inline" : "attachment",
 					contentId: attachment.contentId,
 				})),
-			},
-			jobId,
-		);
+			};
+		}, jobId);
 
 		// A fresh message starts its own conversation; Cloudflare's Message-ID is what
 		// any reply will name in In-Reply-To, so key the thread by it.
@@ -264,7 +262,7 @@ async function deliverEmail(env: CloudflareEnv, delivery: PreparedDelivery): Pro
 				.set({ threadKey: threadId })
 				.where(and(eq(conversationNotes.mailboxId, mailboxId), eq(conversationNotes.threadKey, messageId)));
 		}
-		await db.update(outboundJobs).set({ status: "sent", updatedAt: new Date() }).where(eq(outboundJobs.id, jobId));
+		await db.update(outboundJobs).set({ status: "sent", provider: response.provider, updatedAt: new Date() }).where(eq(outboundJobs.id, jobId));
 		if (input.followUpDays) {
 			// The message is already out; a reminder that cannot be stored must not fail the send.
 			await setFollowUp(env, { messageId, userId: input.userId, days: input.followUpDays }).catch((error) => console.error("Follow-up reminder skipped", error));
