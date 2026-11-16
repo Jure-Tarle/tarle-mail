@@ -38,6 +38,10 @@ interface CloudflareEnv {
 	APNS_TEAM_ID?: string;
 	/** The .p8 file contents (PKCS#8 PEM). */
 	APNS_PRIVATE_KEY?: string;
+	/** Cloudflare Access team domain (`<team>.cloudflareaccess.com`). With CF_ACCESS_AUD set, the Worker rejects requests without a valid Access JWT, except the paths in src/lib/security/access-bypass.ts. See docs/access.md. */
+	CF_ACCESS_TEAM_DOMAIN?: string;
+	/** Application Audience (AUD) tag of the Cloudflare Access application protecting the domain. */
+	CF_ACCESS_AUD?: string;
 	/** Origin of a Mailflare push relay (mailflare-relay); lets this server push without APNS_* keys. */
 	APNS_RELAY_URL?: string;
 	/** Spamhaus Data Query Service key; enables ZEN (sending IP) and DBL (domain) checks in spam analysis. */

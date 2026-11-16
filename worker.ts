@@ -37,10 +37,14 @@ import { runAccountRetention } from "./src/lib/accounts/deletion";
 import { runJmapChangeRetention } from "./src/lib/jmap/changes";
 import { runFollowUpReminders } from "./src/lib/follow-ups/service";
 import { runCalendarReminders } from "./src/lib/calendar/reminders";
+import { enforceCloudflareAccess } from "./src/lib/security/access-jwt";
 export { RealtimeHub } from "./src/lib/realtime/hub";
 
 export default {
 	async fetch(request: Request, rawEnv: CloudflareEnv, ctx: ExecutionContext) {
+		// Defense in depth behind Cloudflare Access; a no-op until CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD are set.
+		const accessDenied = await enforceCloudflareAccess(request, rawEnv);
+		if (accessDenied) return accessDenied;
 		// Reads go through a D1 session anchored at the client's bookmark cookie so D1 can serve
 		// them from read replicas; email/queue/scheduled below keep primary reads on purpose.
 		const d1Session = withD1ReadSession(rawEnv, request);
