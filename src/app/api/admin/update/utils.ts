@@ -5,8 +5,6 @@ import { getEnv } from "@/lib/cloudflare";
 import { isNodeRuntime } from "@/lib/runtime";
 import type {
   GitHubContentResponse,
-  GitHubRepositoryResponse,
-  GitHubWorkflowDispatchResponse,
   PackageMetadata,
   UpdateConfigurationItem,
   UpdateDispatchConfig,
@@ -16,7 +14,6 @@ import packageMetadata from "../../../../../package.json";
 
 const GITHUB_API_URL = "https://api.github.com";
 const GITHUB_API_VERSION = "2026-03-10";
-const UPDATE_WORKFLOW = "deploy-update.yml";
 const UPDATE_SOURCE_REPOSITORY = "hieunc229/mailflare";
 
 export async function authorizeAdminRequest(request: Request) {
@@ -103,21 +100,6 @@ async function githubRequest<T>(
     response.status === 204 ? undefined : ((await response.json()) as T);
 
   return { data, response };
-}
-
-async function getDispatchRef(config: UpdateDispatchConfig): Promise<string> {
-  if (config.ref) return config.ref;
-
-  const { data, response } = await githubRequest<GitHubRepositoryResponse>(
-    `/repos/${config.repository}`,
-  );
-  if (!response.ok || !data?.default_branch) {
-    throw new Error(
-      data?.message ?? "Could not determine the repository default branch",
-    );
-  }
-
-  return data.default_branch;
 }
 
 function parseVersion(version: string): number[] {
@@ -207,38 +189,5 @@ export async function getUpdateStatus(
     currentVersion,
     repository: UPDATE_SOURCE_REPOSITORY,
     targetVersion,
-  };
-}
-
-export async function dispatchUpdateWorkflow() {
-  const env = getEnv();
-
-  const config = getDispatchConfig(env);
-  const repository = config.repository;
-  const ref = await getDispatchRef(config);
-
-  // Dispatch by workflow file name; GitHub accepts it in place of the numeric
-  // workflow id, so this does not depend on the workflow's display name.
-  const { data, response } =
-    await githubRequest<GitHubWorkflowDispatchResponse>(
-      `/repos/${repository}/actions/workflows/${UPDATE_WORKFLOW}/dispatches`,
-      {
-        method: "POST",
-        body: JSON.stringify({ ref }),
-      },
-    );
-
-  if (!response.ok) {
-    throw new Error(
-      data?.message ??
-        `GitHub returned HTTP ${response.status} dispatching ${UPDATE_WORKFLOW} in ${repository}`,
-    );
-  }
-
-  return {
-    ref,
-    repository,
-    runUrl: data?.html_url,
-    workflowRunId: data?.workflow_run_id,
   };
 }
