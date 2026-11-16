@@ -16,6 +16,7 @@ export const BYPASS_GROUPS = [
 	{ id: "inbound-webhooks", rules: [{ match: "prefix", path: "/api/inbound" }] },
 	{ id: "public-booking", rules: [{ match: "prefix", path: "/book" }, { match: "prefix", path: "/c" }, { match: "prefix", path: "/api/public/booking" }] },
 	{ id: "public-links", rules: [{ match: "prefix", path: "/d" }, { match: "prefix", path: "/api/drive/public" }, { match: "prefix", path: "/api/shared-files" }] },
+	{ id: "bimi-logos", rules: [{ match: "prefix", path: "/bimi" }] },
 	{ id: "read-receipts", rules: [{ match: "prefix", path: "/api/i" }] },
 	{ id: "calendar-feed", rules: [{ match: "exact", path: "/api/calendar/feed" }] },
 	{

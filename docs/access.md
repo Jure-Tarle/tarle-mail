@@ -61,6 +61,7 @@ The list lives in [`src/lib/security/access-bypass.ts`](../src/lib/security/acce
 | `inbound-webhooks` | `/api/inbound/*` | Relay (HMAC), Resend (Svix) and SES (SNS) deliver received mail; each request is signature-checked. |
 | `public-booking` | `/book/*`, `/c/*`, `/api/public/booking/*` | Guests book meetings without an account. |
 | `public-links` | `/d/*`, `/api/drive/public/*`, `/api/shared-files/*` | Shared Drive links and shared attachment links; the token is the credential. |
+| `bimi-logos` | `/bimi/*` | BIMI sender logo named in the `default._bimi` TXT record, fetched by receiving mail providers. |
 | `read-receipts` | `/api/i/*` | Tracking pixel loaded by the recipient's mail client. |
 | `calendar-feed` | `/api/calendar/feed` | Calendar apps subscribe with a read-only API key in the URL. |
 | `api-clients` | `/api/v1/*`, `/api/calendar/events/*`, `/mcp`, `/jmap/*`, `/.well-known/jmap`, `/api/mobile/*`, `/api/auth/device` | API-key clients (REST, MCP, JMAP, mobile app) cannot do a browser login. `/api/auth/device` is the mobile password sign-in; it is rate limited and supports MFA. |

@@ -36,6 +36,11 @@ export const ACCESS_BYPASS_GROUPS: AccessBypassGroup[] = [
 		rules: [prefix("/d"), prefix("/api/drive/public"), prefix("/api/shared-files")],
 	},
 	{
+		id: "bimi-logos",
+		reason: "BIMI sender logos (/bimi/<hostname>.svg) named in the default._bimi TXT record, fetched by receiving mail providers.",
+		rules: [prefix("/bimi")],
+	},
+	{
 		id: "read-receipts",
 		reason: "Tracking pixel (/api/i/<token>.gif) fetched by the recipient's mail client.",
 		rules: [prefix("/api/i")],

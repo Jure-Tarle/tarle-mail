@@ -71,6 +71,7 @@ export const adminPaletteLinks: { href: string; labelKey: TranslationKey; permis
 	{ href: "/agent", labelKey: "admin.nav.agent", permission: "primary" },
 	{ href: "/accounts", labelKey: "admin.nav.accounts" },
 	{ href: "/activity", labelKey: "admin.nav.activity", permission: "primary" },
+	{ href: "/usage", labelKey: "admin.nav.usage", permission: "primary" },
 	{ href: "/backups", labelKey: "admin.nav.backups", permission: "primary" },
 	{ href: "/branding", labelKey: "admin.nav.branding", permission: "primary" },
 ];

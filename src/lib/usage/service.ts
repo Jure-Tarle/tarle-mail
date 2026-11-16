@@ -6,6 +6,7 @@ import { awsJson } from "@/lib/aws/client";
 import { getWorkerInvocationHours, getZoneAccountId } from "@/lib/cloudflare-api-analytics";
 import { getEmailWorkerName } from "@/lib/cloudflare-api-utils";
 import { isManualZone } from "@/lib/domains/provision";
+import { getProviderLimits } from "@/lib/providers/quota";
 import { hasCloudflareCredentials } from "@/lib/runtime";
 import { recentZonedDays } from "@/lib/time/utils";
 import {
@@ -129,6 +130,12 @@ export async function getUsageOverview(env: CloudflareEnv, timeZone: string, now
 
 	const providerByHost = new Map<string, SendingProviderId>(domainRows.map((row) => [row.hostname.toLowerCase(), row.sendingProvider]));
 	const providers = tallyProviders(senderRows, providerByHost);
+	const configuredLimits = await getProviderLimits(env);
+	for (const item of providers) {
+		const configured = item.provider === "unmapped" || item.provider === "none" ? undefined : configuredLimits[item.provider];
+		if (configured?.daily) item.limits.perDay = configured.daily;
+		if (configured?.monthly) item.limits.perMonth = configured.monthly;
+	}
 	const ses = providers.find((item) => item.provider === "ses");
 	if (ses) {
 		const quota = await readSesQuota(env);

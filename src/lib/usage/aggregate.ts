@@ -4,7 +4,7 @@
  * tiers. `service.ts` reads the rows; nothing here touches I/O.
  */
 
-export type SendingProviderId = "cloudflare" | "resend" | "ses" | "none";
+export type SendingProviderId = "cloudflare" | "resend" | "ses" | "brevo" | "mailjet" | "smtp" | "none";
 
 export type FlowCountRow = { date: string; direction: string; status: string; count: number };
 export type DailyFlow = { date: string; received: number; spam: number; sent: number; failed: number };
@@ -12,12 +12,17 @@ export type DailyFlow = { date: string; received: number; spam: number; sent: nu
 /**
  * Published allowances per sending provider. Cloudflare's is what Email Sending
  * includes with a Workers Paid plan; SES has no fixed free tier, so its limit is
- * read from the account's own send quota instead.
+ * read from the account's own send quota instead. Brevo and Mailjet show their
+ * free plans; SMTP servers have no known limit. Limits an admin sets under
+ * Admin → General (provider limits) replace these in `service.ts`.
  */
 export const PROVIDER_LIMITS: Record<SendingProviderId, { label: string; perDay?: number; perMonth?: number }> = {
 	resend: { label: "Resend", perDay: 100, perMonth: 3000 },
 	cloudflare: { label: "Cloudflare Email Sending", perMonth: 3000 },
 	ses: { label: "Amazon SES" },
+	brevo: { label: "Brevo", perDay: 300 },
+	mailjet: { label: "Mailjet", perDay: 200, perMonth: 6000 },
+	smtp: { label: "SMTP" },
 	none: { label: "Not configured" },
 };
 
