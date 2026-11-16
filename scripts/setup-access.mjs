@@ -110,10 +110,10 @@ async function ensureOrganization(token, accountId, team) {
 	console.log(`Created Zero Trust organization: ${team}.cloudflareaccess.com`);
 }
 
-/** Adds the One-time PIN login method (a code sent by email) when no login method of that type exists. */
+/** Adds the One-time PIN login method (a code sent by email) when the account has no login method yet. */
 async function ensureOneTimePin(token, accountId) {
 	const providers = await call(token, "GET", `/accounts/${accountId}/access/identity_providers`);
-	if ((providers.result ?? []).some((provider) => provider.type === "onetimepin")) return;
+	if ((providers.result ?? []).length > 0) return;
 	await call(token, "POST", `/accounts/${accountId}/access/identity_providers`, { name: "One-time PIN", type: "onetimepin", config: {} });
 	console.log("Added the One-time PIN login method");
 }

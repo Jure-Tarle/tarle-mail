@@ -24,7 +24,7 @@ node scripts/setup-access.mjs --domain mail.example.com --email you@example.com 
 node scripts/setup-access.mjs --domain mail.example.com --email you@example.com --team yourteam
 ```
 
-`--team` creates the Zero Trust organization `yourteam.cloudflareaccess.com` when the account has none (Zero Trust Free covers up to 50 users). The script also adds the **One-time PIN** login method, so Access emails you a code at sign-in. If creating the organization fails because Zero Trust was never opened on the account, open **Zero Trust** in the dashboard once, pick the Free plan and the team name, then run the script again.
+`--team` creates the Zero Trust organization `yourteam.cloudflareaccess.com` when the account has none (Zero Trust Free covers up to 50 users). If the account has no login method yet, the script adds **One-time PIN**, so Access emails you a code at sign-in; an existing method (for example login with your Cloudflare account) is kept. If creating the organization fails because Zero Trust was never opened on the account, open **Zero Trust** in the dashboard once, pick the Free plan and the team name, then run the script again.
 
 It creates or updates `mail.example.com (login)` (Allow your email, 24 h session) and one `mail.example.com (public paths)` application holding every bypassed path (Access allows up to 50 per application), then prints the two Worker variables. The token is never printed.
 
