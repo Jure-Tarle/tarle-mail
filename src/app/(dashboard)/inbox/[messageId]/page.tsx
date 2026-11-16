@@ -352,6 +352,7 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
                 managedAvatarUrl={message.direction === "outbound" && message.mailboxId
                   ? `/api/mailboxes/${message.mailboxId}/avatar`
                   : undefined}
+                senderLogoUrl={message.direction === "inbound" ? `/api/messages/${message.id}/bimi-logo` : undefined}
                 className="mt-2 sm:-ml-12"
               />
               <div className="flex-1 min-w-0">

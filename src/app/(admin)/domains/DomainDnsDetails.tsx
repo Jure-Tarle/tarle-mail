@@ -6,6 +6,7 @@ import CloudflareReceivingConfig from "./CloudflareReceivingConfig";
 import ReceivingSetupSection from "./ReceivingSetupSection";
 import SendingSetupSection from "./SendingSetupSection";
 import TrackingHostSection from "./TrackingHostSection";
+import BimiLogoSection from "./BimiLogoSection";
 import type { DnsAuthRecord, DomainDnsDetailsProps } from "./types";
 
 export default function DomainDnsDetails({
@@ -117,6 +118,7 @@ export default function DomainDnsDetails({
 				cloudflareOk={!!sendingOk && audit?.dkim.status === "ok"}
 			/>
 			{domain.sendingProvider !== "none" && <TrackingHostSection domain={domain} />}
+			<BimiLogoSection domain={domain} />
 		</div>
 	);
 }
