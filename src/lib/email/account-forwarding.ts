@@ -4,12 +4,13 @@ import { users } from "@/db/schema";
 import { getEmailAddress } from "@/lib/email/address";
 import { resolveInboundAddress } from "@/lib/email/routing";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
+import { getCloudflareToken } from "@/lib/runtime";
 
 export const MAILFLARE_FORWARDED_HEADER = "X-Mailflare-Forwarded";
 
 /** Server-only secrets the loop-guard marker can be keyed with, in order of preference. */
 function markerSecret(env: CloudflareEnv): string | null {
-	return env.CF_TOKEN || env.CF_API_KEY || env.INBOUND_WEBHOOK_SECRET || null;
+	return getCloudflareToken(env) || env.CF_API_KEY || env.INBOUND_WEBHOOK_SECRET || null;
 }
 
 async function markerMac(secret: string): Promise<string> {

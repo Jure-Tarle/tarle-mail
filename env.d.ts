@@ -67,6 +67,9 @@ interface CloudflareEnv {
 	S3_REGION?: string;
 	S3_ACCESS_KEY_ID?: string;
 	S3_SECRET_ACCESS_KEY?: string;
+	/** Runtime Cloudflare API token (zones, DNS, Email Routing, Email Sending). */
+	CLOUDFLARE_TOKEN?: string;
+	/** Upstream name for CLOUDFLARE_TOKEN, still accepted. */
 	CF_TOKEN?: string;
 	CF_API_KEY?: string;
 	CF_EMAIL?: string;

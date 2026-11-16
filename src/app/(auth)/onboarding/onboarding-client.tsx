@@ -139,7 +139,7 @@ export function OnboardingClient() {
 				{step === 1 && (
 					<>
 						<p className="rounded-2xl bg-[#eaf1fb] px-4 py-3 text-sm leading-6 text-neutral-700">
-							{t("onboarding.cloudflareDns", { token: "\u0001" }).split("\u0001").flatMap((part, index) => index === 0 ? [part] : [<code key={index} className="no-font-mono text-xs font-semibold text-blue-800">CF_TOKEN</code>, part])}
+							{t("onboarding.cloudflareDns", { token: "\u0001" }).split("\u0001").flatMap((part, index) => index === 0 ? [part] : [<code key={index} className="no-font-mono text-xs font-semibold text-blue-800">CLOUDFLARE_TOKEN</code>, part])}
 						</p>
 						<div className="space-y-2">
 							<Label htmlFor="domain">{t("onboarding.domain")}</Label>

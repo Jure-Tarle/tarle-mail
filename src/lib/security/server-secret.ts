@@ -1,3 +1,5 @@
+import { getCloudflareToken } from "@/lib/runtime";
+
 const OBJECT_KEY = "config/signing-secret";
 
 function hex(bytes: Uint8Array): string {
@@ -9,7 +11,7 @@ function hex(bytes: Uint8Array): string {
  * preferred; otherwise one is generated once and kept in the bucket, so no setup is required.
  */
 export async function getServerSecret(env: CloudflareEnv): Promise<string> {
-	const configured = env.CF_TOKEN || env.CF_API_KEY || env.INBOUND_WEBHOOK_SECRET;
+	const configured = getCloudflareToken(env) || env.CF_API_KEY || env.INBOUND_WEBHOOK_SECRET;
 	if (configured) return configured;
 	const existing = await env.BUCKET.get(OBJECT_KEY);
 	if (existing) return (await existing.text()).trim();

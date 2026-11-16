@@ -19,7 +19,7 @@ function mailerConfig(): MailerConfig {
 	const smtp = optional("SMTP_URL");
 	if (smtp) return { kind: "smtp", url: smtp };
 	const accountId = optional("CF_ACCOUNT_ID");
-	const token = optional("CF_TOKEN");
+	const token = optional("CLOUDFLARE_TOKEN") ?? optional("CF_TOKEN");
 	if (accountId && token) return { kind: "cloudflare", accountId, token };
 	return { kind: "none" };
 }
@@ -68,7 +68,7 @@ export function createNodeRuntime(): NodeRuntime {
 		S3_REGION: optional("S3_REGION") ?? optional("AWS_REGION"),
 		S3_ACCESS_KEY_ID: optional("S3_ACCESS_KEY_ID") ?? optional("AWS_ACCESS_KEY_ID"),
 		S3_SECRET_ACCESS_KEY: optional("S3_SECRET_ACCESS_KEY") ?? optional("AWS_SECRET_ACCESS_KEY"),
-		CF_TOKEN: optional("CF_TOKEN"),
+		CF_TOKEN: optional("CLOUDFLARE_TOKEN") ?? optional("CF_TOKEN"),
 		CF_API_KEY: optional("CF_API_KEY"),
 		CF_EMAIL: optional("CF_EMAIL"),
 		TURNSTILE_SECRET_KEY: optional("TURNSTILE_SECRET_KEY"),

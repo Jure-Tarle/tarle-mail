@@ -3,7 +3,7 @@
 //   - one self-hosted application for the whole domain, with an Allow policy for one email (24 h session);
 //   - one application per bypass group, with a Bypass (everyone) policy, for the paths that external services
 //     and non-browser clients call (webhooks, public booking and share links, API-key clients, static assets).
-// Usage: CF_ACCOUNT_ID=... CF_ACCESS_API_TOKEN=... node scripts/setup-access.mjs --domain mail.tarle.de --email you@example.com [--dry-run]
+// Usage: CF_ACCOUNT_ID=... CLOUDFLARE_TOKEN=... node scripts/setup-access.mjs --domain mail.example.com --email you@example.com [--team <name>] [--dry-run]
 // The token needs "Access: Apps and Policies Edit". Reading the team domain also needs an Access organization read
 // permission; without it the script still prints the AUD. The token is only sent to api.cloudflare.com and never printed.
 import { pathToFileURL } from "node:url";
@@ -84,13 +84,38 @@ export function parseArgs(argv) {
 		const [flag, inline] = argv[i].split(/=(.*)/s);
 		if (flag === "--dry-run") args.dryRun = true;
 		else if (flag === "--help" || flag === "-h") args.help = true;
-		else if (flag === "--domain" || flag === "--email") args[flag.slice(2)] = inline ?? argv[++i];
+		else if (flag === "--domain" || flag === "--email" || flag === "--team") args[flag.slice(2)] = inline ?? argv[++i];
 		else throw new Error(`Unknown argument: ${flag}`);
 	}
 	return args;
 }
 
 class ApiError extends Error {}
+
+const TEAM = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/** Creates the Zero Trust organization (team domain) when the account has none yet. Needs Access: Organizations Edit. */
+async function ensureOrganization(token, accountId, team) {
+	try {
+		const current = await call(token, "GET", `/accounts/${accountId}/access/organizations`);
+		if (current.result?.auth_domain) {
+			console.log(`Zero Trust organization exists: ${current.result.auth_domain}`);
+			return;
+		}
+	} catch {
+		// No organization yet (or no read access); try to create one below.
+	}
+	await call(token, "POST", `/accounts/${accountId}/access/organizations`, { name: team, auth_domain: `${team}.cloudflareaccess.com` });
+	console.log(`Created Zero Trust organization: ${team}.cloudflareaccess.com`);
+}
+
+/** Adds the One-time PIN login method (a code sent by email) when no login method of that type exists. */
+async function ensureOneTimePin(token, accountId) {
+	const providers = await call(token, "GET", `/accounts/${accountId}/access/identity_providers`);
+	if ((providers.result ?? []).some((provider) => provider.type === "onetimepin")) return;
+	await call(token, "POST", `/accounts/${accountId}/access/identity_providers`, { name: "One-time PIN", type: "onetimepin", config: {} });
+	console.log("Added the One-time PIN login method");
+}
 
 async function call(token, method, path, body) {
 	const response = await fetch(`${API}${path}`, {
@@ -132,14 +157,18 @@ function printDryRun(accountId, plan) {
 }
 
 async function run(args) {
-	if (!args.domain || !HOSTNAME.test(args.domain.toLowerCase())) throw new Error("--domain must be a hostname such as mail.tarle.de");
+	if (!args.domain || !HOSTNAME.test(args.domain.toLowerCase())) throw new Error("--domain must be a hostname such as mail.example.com");
 	if (!args.email || !EMAIL.test(args.email)) throw new Error("--email must be the email address that may sign in");
 	const domain = args.domain.toLowerCase();
 	const plan = buildPlan({ domain, email: args.email });
 	const accountId = process.env.CF_ACCOUNT_ID?.trim();
-	const token = process.env.CF_ACCESS_API_TOKEN?.trim();
+	const token = (process.env.CF_ACCESS_API_TOKEN || process.env.CLOUDFLARE_TOKEN)?.trim();
 	if (args.dryRun) return printDryRun(accountId || "<CF_ACCOUNT_ID>", plan);
-	if (!accountId || !token) throw new Error("Set CF_ACCOUNT_ID and CF_ACCESS_API_TOKEN (permission: Access: Apps and Policies Edit)");
+	if (!accountId || !token) throw new Error("Set CF_ACCOUNT_ID and CLOUDFLARE_TOKEN or CF_ACCESS_API_TOKEN (permission: Access: Apps and Policies Edit)");
+	if (args.team !== undefined && !TEAM.test(args.team)) throw new Error("--team must be lowercase letters, digits and hyphens");
+
+	if (args.team) await ensureOrganization(token, accountId, args.team);
+	await ensureOneTimePin(token, accountId);
 
 	const existing = await listApps(token, accountId);
 	let mainAud = "";
@@ -167,7 +196,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 	try {
 		const args = parseArgs(process.argv.slice(2));
 		if (args.help) {
-			console.log("Usage: CF_ACCOUNT_ID=... CF_ACCESS_API_TOKEN=... node scripts/setup-access.mjs --domain mail.tarle.de --email you@example.com [--dry-run]");
+			console.log("Usage: CF_ACCOUNT_ID=... CLOUDFLARE_TOKEN=... node scripts/setup-access.mjs --domain mail.example.com --email you@example.com [--team <name>] [--dry-run]");
 		} else {
 			await run(args);
 		}

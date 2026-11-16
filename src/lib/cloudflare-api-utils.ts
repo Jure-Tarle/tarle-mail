@@ -1,7 +1,8 @@
 import type { CfApiError, CfAuth } from "@/lib/cloudflare-api.types";
+import { getCloudflareToken } from "@/lib/runtime";
 
 export function getCloudflareAuth(env: CloudflareEnv): CfAuth {
-	const token = env.CF_TOKEN?.trim();
+	const token = getCloudflareToken(env);
 	const key = env.CF_API_KEY?.trim();
 	const email = env.CF_EMAIL?.trim();
 
@@ -17,7 +18,7 @@ export function getCloudflareAuth(env: CloudflareEnv): CfAuth {
 		throw new Error("CF_EMAIL is required when using CF_API_KEY");
 	}
 
-	throw new Error("CF_TOKEN or CF_API_KEY is not configured");
+	throw new Error("CLOUDFLARE_TOKEN or CF_API_KEY is not configured");
 }
 
 export function getCloudflareAuthHeaders(auth: CfAuth): HeadersInit {
@@ -60,7 +61,7 @@ export function getCloudflareAuthHint(errors: CfApiError[], path = "") {
 	);
 	if (!hasAuthError) return "";
 
-	return " Verify CF_TOKEN with `curl https://api.cloudflare.com/client/v4/user/tokens/verify -H \"Authorization: Bearer <token>\"`. Use the token secret value without `Bearer`, or use CF_API_KEY plus CF_EMAIL for a Global API Key.";
+	return " Verify CLOUDFLARE_TOKEN with `curl https://api.cloudflare.com/client/v4/user/tokens/verify -H \"Authorization: Bearer <token>\"`. Use the token secret value without `Bearer`, or use CF_API_KEY plus CF_EMAIL for a Global API Key.";
 }
 
 export function getEmailWorkerName(): string {

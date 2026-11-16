@@ -10,6 +10,7 @@
     "lint": "vp lint .",
     "deploy": "npm run build && npm run deploy:worker",
     "deploy:worker": "wrangler deploy",
+    "deploy:domain": "npm run build && wrangler deploy --domain",
     "deploy:local": "npm run deploy",
     "upload": "npm run build && wrangler versions upload",
     "preview": "npm run build && vp preview --port 3000",
@@ -32,8 +33,8 @@
   },
   "cloudflare": {
     "bindings": {
-      "CF_TOKEN": {
-        "description": "Runtime Cloudflare API token used by Mailflare onboarding to call the Zones, DNS, and Email Routing APIs. Cloudflare's deploy/build token is not passed to the app, so create this separately at https://dash.cloudflare.com/profile/api-tokens with `Zone Read`, `DNS Edit`, `Email Routing Edit`, and `Email Routing Rules Write` permissions for the zones you will connect. Add `Email Sending Edit` to enable outbound mail. Paste only the token secret value, without `Bearer`."
+      "CLOUDFLARE_TOKEN": {
+        "description": "Runtime Cloudflare API token the app uses to set up Email Routing, DNS and Email Sending for your domains (the deploy token is not passed to the app). Create it at https://dash.cloudflare.com/profile/api-tokens with Zone: Zone Read, DNS Edit, Zone Settings Edit, Email Routing Rules Edit and Account: Email Routing Addresses Edit, Email Sending Edit. Paste only the token value, without `Bearer`."
       },
       "TURNSTILE_SECRET_KEY": {
         "description": "Cloudflare Turnstile secret key used to verify login and first-run registration challenges. Pair with NEXT_PUBLIC_TURNSTILE_SITE_KEY at build time."
@@ -41,23 +42,17 @@
       "NEXT_PUBLIC_TURNSTILE_SITE_KEY": {
         "description": "Cloudflare Turnstile public site key used by the login and first-run registration widgets."
       },
-      "CF_EMAIL_WORKER_NAME": {
-        "description": "Worker name used when creating Cloudflare Email Routing rules. Set this to the deployed Worker name; if you rename the Worker, update this value too."
+      "CF_ACCESS_TEAM_DOMAIN": {
+        "description": "Optional. Your Cloudflare Zero Trust team domain (team.cloudflareaccess.com). Set together with CF_ACCESS_AUD to make the Worker verify the Cloudflare Access login itself (docs/access.md)."
       },
-      "GITHUB_UPDATE_TOKEN": {
-        "description": "Fine-grained GitHub token for the installation repository with Actions: write permission. Used by the admin update endpoint to dispatch deploy-update.yml."
-      },
-      "GITHUB_UPDATE_REF": {
-        "description": "Optional branch used to dispatch updates. Leave blank to use the repository default branch."
-      },
-      "GITHUB_UPDATE_REPO": {
-        "description": "Your github repository that connect to cloudflare worker"
+      "CF_ACCESS_AUD": {
+        "description": "Optional. Application Audience (AUD) tag of the Cloudflare Access application in front of the app (docs/access.md)."
       },
       "CF_EMAIL": {
-        "description": "Legacy Global API Key auth only. Use this with `CF_API_KEY` instead of `CF_TOKEN`."
+        "description": "Legacy Global API Key auth only. Use this with `CF_API_KEY` instead of `CLOUDFLARE_TOKEN`."
       },
       "CF_API_KEY": {
-        "description": "Legacy Global API Key auth only. Prefer `CF_TOKEN` for new deployments."
+        "description": "Legacy Global API Key auth only. Prefer `CLOUDFLARE_TOKEN`."
       }
     }
   },

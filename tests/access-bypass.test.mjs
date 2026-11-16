@@ -181,5 +181,5 @@ test("the script rejects a bad domain, a bad email and unknown flags without cal
 test("a real run without credentials stops before any request", () => {
 	const result = spawnSync(process.execPath, [script, "--domain", domain, "--email", "a@b.de"], { encoding: "utf8", env: { PATH: process.env.PATH } });
 	assert.equal(result.status, 1);
-	assert.match(result.stderr, /CF_ACCOUNT_ID and CF_ACCESS_API_TOKEN/);
+	assert.match(result.stderr, /CF_ACCOUNT_ID and CLOUDFLARE_TOKEN or CF_ACCESS_API_TOKEN/);
 });

@@ -1,5 +1,6 @@
 import type { AgentModelOption, AgentModelRates, AgentProviderPreset } from "./provider-types";
 import { getAgentProviderConfig, resolveAgentBaseUrl } from "./provider";
+import { getCloudflareToken } from "@/lib/runtime";
 
 export const CLOUDFLARE_TOOL_MODELS: AgentModelOption[] = [
 	{ id: "@cf/moonshotai/kimi-k2.5", name: "Kimi K2.5" },
@@ -33,9 +34,10 @@ function openRouterRates(pricing: unknown): AgentModelRates | undefined {
 }
 
 export async function listCloudflareAgentModels(env: CloudflareEnv): Promise<{ models: AgentModelOption[]; source: "catalog" | "suggested" }> {
-	if (!env.CF_ACCOUNT_ID || !env.CF_TOKEN) return { models: CLOUDFLARE_TOOL_MODELS, source: "suggested" };
+	const token = getCloudflareToken(env);
+	if (!env.CF_ACCOUNT_ID || !token) return { models: CLOUDFLARE_TOOL_MODELS, source: "suggested" };
 	try {
-		const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CF_ACCOUNT_ID)}/ai/models/search?task=Text%20Generation`, { headers: { Authorization: `Bearer ${env.CF_TOKEN}` }, signal: AbortSignal.timeout(10_000), redirect: "manual" });
+		const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CF_ACCOUNT_ID)}/ai/models/search?task=Text%20Generation`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000), redirect: "manual" });
 		if (!response.ok) throw new Error("Catalog unavailable");
 		const json = await response.json() as { result?: { name?: unknown; description?: unknown; task?: unknown; properties?: unknown }[] };
 		const models = (json.result ?? []).filter((item) => typeof item.name === "string" && item.name.startsWith("@cf/") && (item.task === "Text Generation" || item.task === "text-generation" || !item.task)).map((item) => ({ id: item.name as string, name: item.name as string, rates: cloudflareRates(item.properties) })).slice(0, 200);
