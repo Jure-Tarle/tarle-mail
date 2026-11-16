@@ -21,6 +21,7 @@ import { CheckCircle2, LoaderCircle, Plus } from "@/components/icons";
 import { authFetch } from "@/lib/auth/client";
 import type { DnsAuthRecord, DnsStatusSummary, Domain, DomainDnsCache, DomainDnsView, DomainPreflight, ReceivingProvider, SendingProvider } from "./types";
 import DomainItemCard from "./DomainItemCard";
+import SenderLogosToggle from "./SenderLogosToggle";
 import { SectionRowSkeleton } from "@/components/page-skeletons";
 import { checkDomain } from "./utils";
 import { confirmMxReplacement, createDomain, isMxConflictError } from "./api";
@@ -426,6 +427,7 @@ export default function DomainsPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <SenderLogosToggle />
       <section className="space-y-3">
         {/* <div className="flex items-center justify-between">
 					<span className="text-sm text-neutral-500">{(data?.domains ?? []).length} total</span>

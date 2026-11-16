@@ -18,6 +18,7 @@ export function ContactAvatar({
 	name,
 	hasManagedAvatar = false,
 	managedAvatarUrl,
+	senderLogoUrl,
 	className,
 }: ContactAvatarProps) {
 	const [managedAvatar, setManagedAvatar] = useState(hasManagedAvatar);
@@ -38,11 +39,14 @@ export function ContactAvatar({
 		setPrevSource({ managedAvatar, avatarVersion });
 		setImageFailed(false);
 	}
-	const avatarUrl = managedAvatarUrl
+	// A contact's own picture wins; the sender's BIMI logo is the fallback.
+	const contactAvatarUrl = managedAvatarUrl
 		? managedAvatarUrl
 		: managedAvatar && mailboxId
 			? getManagedContactAvatarUrl(mailboxId, address, avatarVersion)
 			: null;
+	const showSenderLogo = !contactAvatarUrl && !!senderLogoUrl;
+	const avatarUrl = contactAvatarUrl ?? senderLogoUrl ?? null;
 
 	useEffect(() => {
 		function onAvatarChanged(event: Event) {
@@ -68,7 +72,8 @@ export function ContactAvatar({
 				<ProgressiveAvatarImage
 					src={avatarUrl}
 					alt=""
-					className="absolute inset-0 h-full w-full object-cover"
+					className={cn("absolute inset-0 h-full w-full", showSenderLogo ? "bg-white object-contain" : "object-cover")}
+					skipPreview={showSenderLogo}
 					onError={() => {
 						if (managedAvatarUrl) setImageFailed(true);
 						else if (managedAvatar) setManagedAvatar(false);

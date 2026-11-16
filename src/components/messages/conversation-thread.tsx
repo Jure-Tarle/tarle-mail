@@ -212,6 +212,7 @@ export function ConversationMessageCard({
 							name={sender}
 							hasManagedAvatar={message.fromContactHasAvatar}
 							managedAvatarUrl={outbound && mailboxId ? `/api/mailboxes/${mailboxId}/avatar` : undefined}
+							senderLogoUrl={outbound ? undefined : `/api/messages/${message.id}/bimi-logo`}
 							className={cn("sm:-ml-12", expanded && "mt-1")}
 						/>
 						<span className="min-w-0 flex-1">
