@@ -61,6 +61,30 @@ Only the sending statements are needed if you use SES just for sending.
 
 Each message is read from your own bucket, handed to the normal inbound pipeline, and deleted. SES's virus scan is enabled and infected messages are dropped. `APP_URL` has to be a public HTTPS address so SNS can reach the endpoint. The bucket and topic are shared by all SES domains; **Clean up** removes only the domain's rule and MX, so Mailflare never deletes resources another domain may still use.
 
+## Brevo, Mailjet and SMTP (sending only)
+
+Three more senders can be chosen per domain under **Setup sending email**. They only send; receiving stays on Cloudflare, Resend or SES, and their DNS records (SPF, DKIM) are published by you from the provider's dashboard. A domain's sending provider is picked on the domain page after it was added, not in the add form.
+
+Credentials are shared by every domain and entered once, either in a provider's card or under **Admin → General → Sending providers**. Saving proves them with the provider first (Brevo `GET /account`, Mailjet `GET /v3/REST/myprofile`, an SMTP login without sending), and **Test connection** repeats that later. Like the Resend key and the AWS credentials they are kept in the app settings and backed up with them; the API only ever returns a masked summary (`xkey••••cdef`, `user@host:587`). Only the primary administrator can change them.
+
+- **Brevo** needs an API key and uses the v3 transactional API. The API has no Content-ID field, so inline images the HTML references with `cid:` are embedded as data URIs.
+- **Mailjet** needs an API key and secret key and uses Send API v3.1. Mailjet assigns its own `Message-ID`; Mailflare adds its own id to `References` so replies still thread.
+- **SMTP** takes host, port, security, username and password. Port **587** uses STARTTLS and **465** implicit TLS; port 25 is refused. On Cloudflare Workers the connection uses `cloudflare:sockets`; the self-hosted Node server uses `node:net` and `node:tls` behind the same interface. The message goes out as MIME that Mailflare builds itself.
+
+`BREVO_API_BASE` and `MAILJET_API_BASE` replace the API origin (tests, proxies); leave them unset normally.
+
+## Fallback providers and sending limits
+
+A domain keeps one **sending provider** and can have an ordered list of **fallback providers** below it. Mailflare tries the provider first, then each fallback in order, and records which one accepted the message on the outbound job (`outbound_jobs.provider`). A fallback is tried when the provider
+
+- is over its **daily or monthly limit** (it is skipped without a request),
+- answers **429** or a **5xx**, or an SMTP **4xx** reply,
+- or cannot be reached (DNS, TLS, reset, timeout).
+
+A **4xx** answer (an invalid sender, a rejected address, bad credentials, a permanent SMTP 5xx refusal) does not fall back: it would fail the same way elsewhere, so the send fails with the provider's message. When every provider is skipped or fails, the error lists each reason. A fallback with no saved credentials is left out.
+
+**Limits** are optional per provider (Cloudflare, Resend, SES, Brevo, Mailjet, SMTP) under **Admin → General → Sending providers**. They count recipients (To, Cc and Bcc) per UTC day and month, for every send through that provider. Counting is not atomic across simultaneous sends, so a cap can be overshot by a few messages.
+
 ## MX records and switching receiving provider
 
 Only one service can own a domain's MX records. When a provider's Setup finds MX records for something else (including Cloudflare Email Routing's), it stops and shows them, and replaces them only after you confirm. Confirming means the previous service stops receiving mail for that domain.

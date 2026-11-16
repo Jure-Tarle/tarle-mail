@@ -87,7 +87,9 @@ export const domains = sqliteTable(
 			.default("pending"),
 		routingStatus: text("routing_status"),
 		sendingSubdomainTag: text("sending_subdomain_tag"),
-		sendingProvider: text("sending_provider", { enum: ["none", "cloudflare", "resend", "ses"] }).notNull().default("none"),
+		sendingProvider: text("sending_provider", { enum: ["none", "cloudflare", "resend", "ses", "brevo", "mailjet", "smtp"] }).notNull().default("none"),
+		/** JSON array of providers tried, in order, when the sending provider is over its limit or unavailable. */
+		sendingFallback: text("sending_fallback").notNull().default("[]"),
 		receivingProvider: text("receiving_provider", { enum: ["none", "cloudflare", "resend", "ses"] }).notNull().default("cloudflare"),
 		sendingRequested: bool("sending_requested").notNull().default(false),
 		sendingEnabled: bool("sending_enabled").notNull().default(false),
@@ -503,6 +505,8 @@ export const outboundJobs = sqliteTable("outbound_jobs", {
 	status: text("status", { enum: ["queued", "sending", "sent", "failed"] }).notNull().default("queued"),
 	payload: text("payload").notNull(),
 	error: text("error"),
+	/** The provider that accepted the message; differs from the domain's own when a fallback sent it. */
+	provider: text("provider"),
 	scheduledAt: timestamp("scheduled_at"),
 	createdAt: timestamp("created_at")
 		.notNull()
@@ -1072,6 +1076,13 @@ export const appSettings = sqliteTable("app_settings", {
 	resendApiKey: text("resend_api_key"),
 	/** JSON: AWS access key, secret and region (see src/lib/aws/config.ts). */
 	awsConfig: text("aws_config"),
+	brevoApiKey: text("brevo_api_key"),
+	/** JSON: Mailjet API key and secret (see src/lib/providers/credentials.ts). */
+	mailjetConfig: text("mailjet_config"),
+	/** JSON: SMTP host, port, security, username and password. */
+	smtpConfig: text("smtp_config"),
+	/** JSON: optional daily and monthly recipient caps per sending provider. */
+	providerLimits: text("provider_limits"),
 	/** JSON: the shared SES inbound resources Mailflare created (bucket, topic, rule set, webhook token). */
 	sesReceiving: text("ses_receiving"),
 	resendWebhookId: text("resend_webhook_id"),
@@ -1094,6 +1105,14 @@ export const appSettings = sqliteTable("app_settings", {
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
+
+/** Recipients sent per provider and UTC day (`id` is `provider:YYYY-MM-DD`); the sums drive the daily and monthly caps. */
+export const providerUsage = sqliteTable("provider_usage", {
+	id: text("id").primaryKey(),
+	provider: text("provider").notNull(),
+	day: text("day").notNull(),
+	count: integer("count").notNull().default(0),
+}, (t) => [index("provider_usage_provider_day_idx").on(t.provider, t.day)]);
 
 export const licenseSettings = sqliteTable("license_settings", {
 	id: text("id").primaryKey(),

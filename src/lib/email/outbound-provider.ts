@@ -4,7 +4,16 @@ import { appSettings, domains } from "@/db/schema";
 import { requireAwsConfig } from "@/lib/aws/config";
 import { sendSesEmail } from "@/lib/aws/ses";
 import { getEmailAddress } from "@/lib/email/address";
-import type { OutboundProviderConfig, OutboundProviderMessage, ResendKeyStatus } from "@/lib/email/outbound-provider-types";
+import type { OutboundProviderConfig, OutboundProviderMessage, OutboundProviderName, OutboundSendAttempt, ResendKeyStatus } from "@/lib/email/outbound-provider-types";
+import { sendWithBrevo } from "@/lib/providers/brevo";
+import { parseFallbackList } from "@/lib/providers/config-utils";
+import { getStoredCredentials } from "@/lib/providers/credentials";
+import { httpFailure, networkFailure, readErrorDetail } from "@/lib/providers/errors";
+import { sendWithFallback } from "@/lib/providers/fallback";
+import { sendWithMailjet } from "@/lib/providers/mailjet";
+import { hasProviderRoom, recordProviderUsage } from "@/lib/providers/quota";
+import { sendWithSmtp } from "@/lib/providers/smtp";
+import { getSmtpConnect } from "@/lib/providers/smtp-socket";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
@@ -35,18 +44,61 @@ export async function getResendApiKey(env: CloudflareEnv): Promise<string> {
 	return apiKey;
 }
 
-/** The provider for the domain a message is sent from. */
-export async function getOutboundProviderConfig(env: CloudflareEnv, fromAddress: string): Promise<OutboundProviderConfig> {
+const notConfigured = (label: string) => new Error(`${label} is selected but no credentials are configured`);
+
+/** The ready-to-use settings for one provider; throws when its credentials are missing. */
+export async function resolveProviderConfig(env: CloudflareEnv, provider: OutboundProviderName): Promise<OutboundProviderConfig> {
+	if (provider === "resend") return { provider, apiKey: await getResendApiKey(env) };
+	if (provider === "ses") return { provider, config: await requireAwsConfig(env) };
+	if (provider === "brevo") {
+		const credentials = await getStoredCredentials(env, "brevo");
+		if (!credentials) throw notConfigured("Brevo");
+		return { provider, apiKey: credentials.apiKey, apiBase: (env as { BREVO_API_BASE?: string }).BREVO_API_BASE?.trim() || undefined };
+	}
+	if (provider === "mailjet") {
+		const credentials = await getStoredCredentials(env, "mailjet");
+		if (!credentials) throw notConfigured("Mailjet");
+		return { provider, ...credentials, apiBase: (env as { MAILJET_API_BASE?: string }).MAILJET_API_BASE?.trim() || undefined };
+	}
+	if (provider === "smtp") {
+		const config = await getStoredCredentials(env, "smtp");
+		if (!config) throw notConfigured("SMTP");
+		return { provider, config };
+	}
+	return { provider: "cloudflare" };
+}
+
+async function readSendingDomain(env: CloudflareEnv, fromAddress: string) {
 	const hostname = getEmailAddress(fromAddress).split("@")[1]?.toLowerCase();
 	const [domain] = hostname
-		? await getDb(env).select({ provider: domains.sendingProvider }).from(domains).where(eq(domains.hostname, hostname)).limit(1)
+		? await getDb(env).select({ provider: domains.sendingProvider, fallback: domains.sendingFallback }).from(domains).where(eq(domains.hostname, hostname)).limit(1)
 		: [];
-	if (!domain || domain.provider === "none") {
+	const provider = domain?.provider;
+	if (!domain || !provider || provider === "none") {
 		throw new Error(`Sending is not set up for ${hostname ?? "this domain"}. Choose a sending provider on the Domains page.`);
 	}
-	if (domain.provider === "resend") return { provider: "resend", apiKey: await getResendApiKey(env) };
-	if (domain.provider === "ses") return { provider: "ses", config: await requireAwsConfig(env) };
-	return { provider: "cloudflare" };
+	return { provider, fallback: domain.fallback };
+}
+
+/** The provider for the domain a message is sent from. */
+export async function getOutboundProviderConfig(env: CloudflareEnv, fromAddress: string): Promise<OutboundProviderConfig> {
+	return resolveProviderConfig(env, (await readSendingDomain(env, fromAddress)).provider);
+}
+
+/**
+ * The domain's provider followed by its fallbacks, in order. A fallback that has no credentials is
+ * left out; the primary one is too when a fallback can take over, otherwise its error is the answer.
+ */
+export async function getOutboundProviderChain(env: CloudflareEnv, fromAddress: string): Promise<OutboundProviderConfig[]> {
+	const domain = await readSendingDomain(env, fromAddress);
+	const names = [domain.provider, ...parseFallbackList(domain.fallback, domain.provider)];
+	const chain: OutboundProviderConfig[] = [];
+	let firstError: unknown = null;
+	for (const name of names) {
+		try { chain.push(await resolveProviderConfig(env, name)); } catch (error) { firstError ??= error; }
+	}
+	if (!chain.length) throw firstError;
+	return chain;
 }
 
 function toBase64(buffer: ArrayBuffer): string {
@@ -93,11 +145,8 @@ async function sendWithResend(
 				...(attachment.disposition === "inline" && attachment.contentId ? { content_id: attachment.contentId } : {}),
 			})),
 		}),
-	});
-	if (!response.ok) {
-		const body = (await response.json().catch(() => null)) as { message?: string } | null;
-		throw new Error(`Resend: ${body?.message ?? `request failed (${response.status})`}`);
-	}
+	}).catch((error) => { throw networkFailure("Resend", error); });
+	if (!response.ok) throw httpFailure("Resend", response.status, await readErrorDetail(response));
 	return { messageId };
 }
 
@@ -109,6 +158,9 @@ export async function sendThroughProvider(
 ): Promise<{ messageId: string }> {
 	if (config.provider === "resend") return sendWithResend(config.apiKey, message, idempotencyKey);
 	if (config.provider === "ses") return sendSesEmail(config.config, message);
+	if (config.provider === "brevo") return sendWithBrevo(config, message);
+	if (config.provider === "mailjet") return sendWithMailjet(config, message);
+	if (config.provider === "smtp") return sendWithSmtp(config.config, message, getSmtpConnect(env));
 	const response = await env.EMAIL.send({
 		from: message.from,
 		to: message.to,
@@ -125,4 +177,25 @@ export async function sendThroughProvider(
 		),
 	});
 	return { messageId: response.messageId };
+}
+
+/**
+ * Sends through the domain's provider, then its fallbacks. `build` receives the provider about to
+ * be tried so it can shape the message for it (Cloudflare turns big attachments into links).
+ * Each provider counts `recipients` against its daily and monthly caps.
+ */
+export async function sendThroughChain(
+	env: CloudflareEnv,
+	chain: OutboundProviderConfig[],
+	recipients: number,
+	build: (config: OutboundProviderConfig) => Promise<OutboundProviderMessage>,
+	idempotencyKey?: string,
+): Promise<{ messageId: string; provider: OutboundProviderName; attempts: OutboundSendAttempt[] }> {
+	return sendWithFallback(chain, {
+		async send(config) {
+			return sendThroughProvider(env, config, await build(config), idempotencyKey);
+		},
+		hasRoom: (provider) => hasProviderRoom(env, provider, recipients),
+		record: (provider) => recordProviderUsage(env, provider, recipients),
+	});
 }

@@ -2,7 +2,7 @@ import { and, asc, eq, ne } from "drizzle-orm";
 import { getDb } from "@/db";
 import { domains, mailboxes, users } from "@/db/schema";
 import { formatEmailAddress } from "@/lib/email/address";
-import { getOutboundProviderConfig, sendThroughProvider } from "@/lib/email/outbound-provider";
+import { getOutboundProviderChain, sendThroughChain } from "@/lib/email/outbound-provider";
 import type { SystemMailInput } from "@/lib/email/system-mail-types";
 
 /**
@@ -19,7 +19,7 @@ export async function sendSystemEmail(env: CloudflareEnv, input: SystemMailInput
 	if (!sender) return false;
 
 	const from = formatEmailAddress(sender.address, sender.name);
-	await sendThroughProvider(env, await getOutboundProviderConfig(env, from), {
+	await sendThroughChain(env, await getOutboundProviderChain(env, from), 1, async () => ({
 		from,
 		to: [input.to],
 		subject: input.subject,
@@ -29,7 +29,7 @@ export async function sendSystemEmail(env: CloudflareEnv, input: SystemMailInput
 			"Auto-Submitted": "auto-generated",
 			"X-Auto-Response-Suppress": "All",
 		},
-	});
+	}));
 	return true;
 }
 

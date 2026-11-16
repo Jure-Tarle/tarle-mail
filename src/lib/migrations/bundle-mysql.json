@@ -336,6 +336,19 @@
       "statements": [
         "ALTER TABLE `messages` ADD `invite_response` text;"
       ]
+    },
+    {
+      "name": "0012_provider_fallback.sql",
+      "statements": [
+        "CREATE TABLE `provider_usage` (\n\t`id` varchar(191) NOT NULL,\n\t`provider` varchar(191) NOT NULL,\n\t`day` varchar(191) NOT NULL,\n\t`count` bigint NOT NULL DEFAULT 0,\n\tCONSTRAINT `provider_usage_id` PRIMARY KEY(`id`)\n);",
+        "CREATE INDEX `provider_usage_provider_day_idx` ON `provider_usage` (`provider`,`day`);",
+        "ALTER TABLE `app_settings` ADD `brevo_api_key` longtext;",
+        "ALTER TABLE `app_settings` ADD `mailjet_config` longtext;",
+        "ALTER TABLE `app_settings` ADD `smtp_config` longtext;",
+        "ALTER TABLE `app_settings` ADD `provider_limits` longtext;",
+        "ALTER TABLE `domains` ADD `sending_fallback` longtext DEFAULT ('[]') NOT NULL;",
+        "ALTER TABLE `outbound_jobs` ADD `provider` longtext;"
+      ]
     }
   ]
 }
