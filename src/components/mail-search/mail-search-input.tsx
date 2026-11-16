@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { HeaderSearch } from "@/components/header-search";
 import { useMailSearch } from "./mail-search-context";
 import { useShortcuts } from "@/components/shortcuts";
+import { MAIL_SEARCH_REQUEST_EVENT, takeMailSearchRequest } from "@/components/command-palette/mail-search-request";
+import { isMailFolderPath } from "@/components/command-palette/palette-entries-utils";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -13,8 +16,22 @@ export function MailSearchInput({ mobileEnd }: { mobileEnd?: boolean }) {
 	const { t } = useLanguage();
 	const { query, setQuery } = useMailSearch();
 	const [input, setInput] = useState(query);
+	const pathname = usePathname();
+	const onMailList = isMailFolderPath(pathname);
 	const { openCommandPalette, shortcutsEnabled, shortcutsPreferenceLoading } = useShortcuts();
 	const showShortcutHints = shortcutsEnabled && !shortcutsPreferenceLoading;
+
+	// A "search mail for ..." from the command palette, sent from this mail list or from the page before it.
+	useEffect(() => {
+		if (!onMailList) return;
+		function applyRequest() {
+			const requested = takeMailSearchRequest();
+			if (requested !== null) setInput(requested);
+		}
+		applyRequest();
+		window.addEventListener(MAIL_SEARCH_REQUEST_EVENT, applyRequest);
+		return () => window.removeEventListener(MAIL_SEARCH_REQUEST_EVENT, applyRequest);
+	}, [onMailList]);
 
 	useEffect(() => {
 		const delay = input.trim() ? SEARCH_DEBOUNCE_MS : 0;

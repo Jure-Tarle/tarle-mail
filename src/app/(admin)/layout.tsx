@@ -18,6 +18,7 @@ import { adminPageTitles } from "@/components/admin-page-titles";
 import { SidebarAside, MobileTopBar } from "@/components/sidebar-aside";
 import { SidebarResizeBoundary } from "@/components/sidebar-resize-boundary";
 import { ShortcutsProvider } from "@/components/shortcuts";
+import { CommandPaletteButton } from "@/components/command-palette";
 import { RouteTitle } from "@/components/route-title";
 
 const primaryOnlyPrefixes = [
@@ -66,6 +67,7 @@ export default function DashboardLayout({
             <div className="flex min-h-0 min-w-0 flex-col">
                             <MobileTopBar title={mobileTitle} />
               <header className="fixed top-2 right-4 flex items-center gap-4 z-90">
+                <CommandPaletteButton />
                 <MailboxSelector />
               </header>
               <main id="main-content" tabIndex={-1} className={clsx("focus:outline-none page-flush min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl max-md:rounded-t-3xl max-md:bg-white max-md:pb-24 px-6 py-10 scrollbar-gutter-stable lg:px-12", mobileTitle && "max-md:[&_h1]:sr-only")}>

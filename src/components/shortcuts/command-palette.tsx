@@ -4,8 +4,7 @@ import React, { useId, useState, useEffect, useRef, useMemo } from "react";
 import { Search, CornerDownLeft } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import type { CommandItem } from "./types";
-import type { TranslationKey } from "@/lib/i18n/types";
-import { filterCommands, groupCommandsByCategory } from "./command-palette-utils";
+import { commandCategoryKey, filterCommands, flattenGroups, groupCommandsByCategory } from "./command-palette-utils";
 import { CommandPaletteItem } from "./command-palette-item";
 import { useDialogFocus } from "@/components/use-dialog-focus";
 
@@ -13,14 +12,18 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   commands: CommandItem[];
+  /** Adds a "search mail for <query>" command while something is typed. */
+  onSearchMail?: (query: string) => void;
 }
 
 function CommandPaletteDialog({
   onClose,
   commands,
+  onSearchMail,
 }: {
   onClose: () => void;
   commands: CommandItem[];
+  onSearchMail?: (query: string) => void;
 }) {
   const { t } = useLanguage();
   const [query, setQuery] = useState("");
@@ -30,10 +33,23 @@ function CommandPaletteDialog({
   const listboxId = useId();
   useDialogFocus(dialogRef, inputRef);
 
-  const filteredCommands = useMemo(
-    () => filterCommands(commands, query),
-    [commands, query]
-  );
+  // What the arrow keys and Enter walk is the list as shown: ranked matches, grouped by category.
+  const grouped = useMemo(() => {
+    const matches = [...filterCommands(commands, query)];
+    const search = query.trim();
+    if (search && onSearchMail) {
+      matches.push({
+        id: "search-mail",
+        title: t("search.mail"),
+        subtitle: `“${search}”`,
+        category: "Search",
+        icon: Search,
+        perform: () => onSearchMail(search),
+      });
+    }
+    return groupCommandsByCategory(matches);
+  }, [commands, query, onSearchMail, t]);
+  const filteredCommands = useMemo(() => flattenGroups(grouped), [grouped]);
 
   const activeIndex = Math.min(
     selectedIndex,
@@ -50,6 +66,8 @@ function CommandPaletteDialog({
         (prev) => (prev - 1 + filteredCommands.length) % (filteredCommands.length || 1)
       );
     } else if (e.key === "Enter") {
+      // Enter confirms an IME candidate; it must not run a command.
+      if (e.nativeEvent.isComposing) return;
       e.preventDefault();
       if (filteredCommands[activeIndex]) {
         filteredCommands[activeIndex].perform();
@@ -61,11 +79,6 @@ function CommandPaletteDialog({
     }
   };
 
-  const grouped = useMemo(
-    () => groupCommandsByCategory(filteredCommands),
-    [filteredCommands]
-  );
-
   let flatIndex = 0;
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
@@ -74,7 +87,7 @@ function CommandPaletteDialog({
   }, [activeIndex, listboxId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/40 dark:bg-black/55 backdrop-blur-xs animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-24 px-4 bg-black/40 dark:bg-black/55 backdrop-blur-xs animate-in fade-in duration-100">
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
       <div
         ref={dialogRef}
@@ -117,9 +130,9 @@ function CommandPaletteDialog({
             </div>
           ) : (
             Object.entries(grouped).map(([category, items]) => (
-              <div key={category} role="group" aria-label={t(`shortcut.category.${category}` as TranslationKey)} className="mb-2 last:mb-0">
+              <div key={category} role="group" aria-label={t(commandCategoryKey(category))} className="mb-2 last:mb-0">
                 <div aria-hidden="true" className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-                  {t(`shortcut.category.${category}` as TranslationKey)}
+                  {t(commandCategoryKey(category))}
                 </div>
                 {items.map((item) => {
                   const isCurrent = flatIndex === activeIndex;
@@ -170,7 +183,8 @@ export function CommandPalette({
   isOpen,
   onClose,
   commands,
+  onSearchMail,
 }: CommandPaletteProps) {
   if (!isOpen) return null;
-  return <CommandPaletteDialog onClose={onClose} commands={commands} />;
+  return <CommandPaletteDialog onClose={onClose} commands={commands} onSearchMail={onSearchMail} />;
 }
