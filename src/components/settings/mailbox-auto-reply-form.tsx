@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Textarea } from "@/components/ui/textarea";
 import type { MailboxAutoReplySettings } from "./types";
 import { updateMailboxAutoReply } from "./utils";
@@ -74,13 +75,22 @@ export function MailboxAutoReplyForm() {
     }
   }
 
+  const title = t("settingsPage.inbox.autoReply");
+  const description = t("settingsPage.inbox.autoReplyDescription");
+
   if (isLoading)
-    return <p className="text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p>;
+    return (
+      <SettingsPanel title={title} description={description}>
+        <p className="text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p>
+      </SettingsPanel>
+    );
   if (!selectedMailbox)
     return (
-      <p className="text-sm text-neutral-500">
-        {t("settings.autoReply.selectInbox")}
-      </p>
+      <SettingsPanel title={title} description={description}>
+        <p className="text-sm text-neutral-500">
+          {t("settings.autoReply.selectInbox")}
+        </p>
+      </SettingsPanel>
     );
 
   const address = `${selectedMailbox.localPart}@${selectedMailbox.hostname}`;
@@ -88,7 +98,31 @@ export function MailboxAutoReplyForm() {
   const changed = JSON.stringify(settings) !== JSON.stringify(savedSettings);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <SettingsPanel
+      title={title}
+      description={description}
+      onSubmit={onSubmit}
+      // The footer also shows while auto-reply is off, so switching it off can be saved.
+      status={
+        (
+          <>
+            {!canManage && (
+              <span className="mr-3 text-neutral-500">
+                {t("settings.autoReply.needFullAccess")}
+              </span>
+            )}
+            {status && <span className="text-neutral-500">{status}</span>}
+          </>
+        )
+      }
+      action={
+        (
+          <Button type="submit" disabled={!canManage || saving || !changed}>
+            {saving ? t("common.saving") : t("settings.autoReply.save")}
+          </Button>
+        )
+      }
+    >
       <label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
         <span className="flex-1">
           <span className="block text-sm font-medium text-neutral-900">
@@ -132,19 +166,8 @@ export function MailboxAutoReplyForm() {
               disabled={!canManage || saving}
             />
           </div>
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={!canManage || saving || !changed}>
-              {saving ? t("common.saving") : t("settings.autoReply.save")}
-            </Button>
-            {!canManage && (
-              <p className="text-sm text-neutral-500">
-                {t("settings.autoReply.needFullAccess")}
-              </p>
-            )}
-            {status && <p role="status" className="text-sm text-neutral-500">{status}</p>}
-          </div>
         </>
       )}
-    </form>
+    </SettingsPanel>
   );
 }

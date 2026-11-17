@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
-import { SettingsNav } from "@/components/settings/settings-nav";
 
+/** User settings pages use the full content width; their navigation lives in the app sidebar. */
 export default function SettingsLayout({ children }: { children: ReactNode }) {
 	return (
-		<div className="flex flex-col-reverse justify-end gap-4 min-h-[calc(100dvh-4rem)] bg-inherit md:flex-row md:justify-start">
-			<div className="min-w-0 flex-1 pt-4 max-md:px-6 max-md:pb-36">
-				<div className="mx-auto w-full max-w-3xl">{children}</div>
-			</div>
-			<SettingsNav />
+		<div className="min-h-[calc(100dvh-4rem)] w-full bg-inherit px-6 pb-36 pt-4 md:pb-10 lg:px-12">
+			{children}
 		</div>
 	);
 }

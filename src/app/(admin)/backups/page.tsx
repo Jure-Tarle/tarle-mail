@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SettingsFieldGrid, SettingsPanel } from "@/components/ui/settings-panel";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { BACKUP_TABLE_GROUPS } from "@/lib/backups/table-groups";
@@ -235,165 +236,158 @@ export default function BackupsPage() {
         </Card>
       )}
 
-      <Card className="rounded-3xl border-0 bg-white p-6">
-        <CardHeader className="py-0">
-          <CardTitle>{t("backups.automatic")}</CardTitle>
-          <CardDescription>
-            {t("backups.scheduleNote")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 pt-5">
-          {settings && (
-            <>
-              <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-5">
-                <Label htmlFor="automatic-backup-switch">{t("backups.enableAutomatic")}</Label>
-                <Switch
-                  id="automatic-backup-switch"
-                  checked={settings.enabled}
-                  disabled={autoSaveSettings.isPending}
-                  onCheckedChange={(enabled) => autoSaveSettings.mutate({ ...settings, enabled })}
-                />
-              </div>
-              {settings.enabled && (
-                <>
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <Label htmlFor="schedule-type" className="flex-1">{t("backups.frequency")}</Label>
-                      <Select
-                        id="schedule-type"
-                        value={settings.scheduleType}
-                        containerClassName="w-1/2 max-w-52 shrink-0 text-sm"
-                        disabled={autoSaveSettings.isPending}
-                        onChange={(event) => {
-                          const scheduleType = event.target
-                            .value as BackupSettings["scheduleType"];
-                          autoSaveSettings.mutate({
-                            ...settings,
-                            scheduleType,
-                            scheduleValue:
-                              scheduleType === "weekly"
+      <SettingsPanel title={t("backups.automatic")} description={t("backups.scheduleNote")}>
+        {settings && (
+          <>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="automatic-backup-switch">{t("backups.enableAutomatic")}</Label>
+              <Switch
+                id="automatic-backup-switch"
+                checked={settings.enabled}
+                disabled={autoSaveSettings.isPending}
+                onCheckedChange={(enabled) => autoSaveSettings.mutate({ ...settings, enabled })}
+              />
+            </div>
+            {settings.enabled && (
+              <>
+                <SettingsFieldGrid className="border-t border-neutral-100 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-type">{t("backups.frequency")}</Label>
+                    <Select
+                      id="schedule-type"
+                      value={settings.scheduleType}
+                      containerClassName="w-full text-sm"
+                      disabled={autoSaveSettings.isPending}
+                      onChange={(event) => {
+                        const scheduleType = event.target
+                          .value as BackupSettings["scheduleType"];
+                        autoSaveSettings.mutate({
+                          ...settings,
+                          scheduleType,
+                          scheduleValue:
+                            scheduleType === "weekly"
+                              ? 1
+                              : scheduleType === "monthly"
                                 ? 1
-                                : scheduleType === "monthly"
-                                  ? 1
-                                  : null,
-                          });
-                        }}
-                        className="px-3 py-2"
-                      >
-                        <option value="daily">{t("backups.daily")}</option>
-                        <option value="weekly">{t("backups.weekly")}</option>
-                        <option value="monthly">{t("backups.monthly")}</option>
-                      </Select>
-                    </div>
-
-                    {settings.scheduleType === "weekly" && (
-                      <div className="flex items-center justify-between gap-4">
-                        <Label htmlFor="weekday">{t("backups.dayOfWeek")}</Label>
-                        <Select
-                          id="weekday"
-                          value={settings.scheduleValue ?? 1}
-                          containerClassName="w-1/2 max-w-52 shrink-0"
-                          disabled={autoSaveSettings.isPending}
-                          onChange={(event) =>
-                            autoSaveSettings.mutate({
-                              ...settings,
-                              scheduleValue: Number(event.target.value),
-                            })
-                          }
-                          
-                        className="px-3 py-2 text-sm"
-                        >
-                          {WEEKDAYS.map((day) => (
-                            <option key={day.value} value={day.value}>
-                              {t(day.labelKey)}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-                    )}
-
-                    {settings.scheduleType === "monthly" && (
-                      <div className="flex items-center justify-between gap-4">
-                        <Label htmlFor="month-day">{t("backups.dayOfMonth")}</Label>
-                        <Input
-                          id="month-day"
-                          className="w-1/2 max-w-52 shrink-0"
-                          type="number"
-                          min={1}
-                          max={28}
-                          value={settings.scheduleValue ?? 1}
-                          disabled={autoSaveSettings.isPending}
-                          onChange={(event) =>
-                            setSettings({
-                              ...settings,
-                              scheduleValue: Number(event.target.value),
-                            })
-                          }
-                          onBlur={(event) => {
-                            if (event.currentTarget.checkValidity()) autoSaveSettings.mutate(settings);
-                            else setSettings({ ...settings, scheduleValue: lastSavedSettings()?.scheduleValue ?? 1 });
-                          }}
-                        />
-                      </div>
-                    )}
+                                : null,
+                        });
+                      }}
+                      className="px-3 py-2"
+                    >
+                      <option value="daily">{t("backups.daily")}</option>
+                      <option value="weekly">{t("backups.weekly")}</option>
+                      <option value="monthly">{t("backups.monthly")}</option>
+                    </Select>
                   </div>
 
-                  <div className="grid gap-4 border-t border-neutral-100 pt-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <Label htmlFor="retention-switch">{t("backups.deleteOld")}</Label>
-                      <Switch
-                        id="retention-switch"
-                        checked={settings.retentionEnabled}
+                  {settings.scheduleType === "weekly" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="weekday">{t("backups.dayOfWeek")}</Label>
+                      <Select
+                        id="weekday"
+                        value={settings.scheduleValue ?? 1}
+                        containerClassName="w-full"
                         disabled={autoSaveSettings.isPending}
-                        onCheckedChange={(retentionEnabled) =>
+                        onChange={(event) =>
                           autoSaveSettings.mutate({
                             ...settings,
-                            retentionEnabled,
+                            scheduleValue: Number(event.target.value),
                           })
                         }
+                        className="px-3 py-2 text-sm"
+                      >
+                        {WEEKDAYS.map((day) => (
+                          <option key={day.value} value={day.value}>
+                            {t(day.labelKey)}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
+                  {settings.scheduleType === "monthly" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="month-day">{t("backups.dayOfMonth")}</Label>
+                      <Input
+                        id="month-day"
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={settings.scheduleValue ?? 1}
+                        disabled={autoSaveSettings.isPending}
+                        onChange={(event) =>
+                          setSettings({
+                            ...settings,
+                            scheduleValue: Number(event.target.value),
+                          })
+                        }
+                        onBlur={(event) => {
+                          if (event.currentTarget.checkValidity()) autoSaveSettings.mutate(settings);
+                          else setSettings({ ...settings, scheduleValue: lastSavedSettings()?.scheduleValue ?? 1 });
+                        }}
                       />
                     </div>
+                  )}
+                </SettingsFieldGrid>
 
-                    <div className="flex items-center justify-between gap-4">
-                      <Label htmlFor="retention-days">
-                        {t("backups.deleteOlderThan")}
-                      </Label>
-                      <div className="flex w-1/2 max-w-52 shrink-0 items-center gap-2 relative">
-                        <Input
-                          id="retention-days"
-                          className="min-w-0"
-                          type="number"
-                          min={1}
-                          max={3650}
-                          value={settings.retentionDays}
-                          disabled={!settings.retentionEnabled || autoSaveSettings.isPending}
-                          onChange={(event) =>
-                            setSettings({
-                              ...settings,
-                              retentionDays: Number(event.target.value),
-                            })
-                          }
-                          onBlur={(event) => {
-                            if (event.currentTarget.checkValidity()) autoSaveSettings.mutate(settings);
-                            else setSettings({ ...settings, retentionDays: lastSavedSettings()?.retentionDays ?? 30 });
-                          }}
-                        />
-                        <span className="text-sm text-neutral-500 absolute z-10 right-6">{t("backups.days")}</span>
-                      </div>
+                <SettingsFieldGrid className="items-end border-t border-neutral-100 pt-4">
+                  <div className="flex min-h-10 items-center gap-3">
+                    <Switch
+                      id="retention-switch"
+                      checked={settings.retentionEnabled}
+                      disabled={autoSaveSettings.isPending}
+                      onCheckedChange={(retentionEnabled) =>
+                        autoSaveSettings.mutate({
+                          ...settings,
+                          retentionEnabled,
+                        })
+                      }
+                    />
+                    <Label htmlFor="retention-switch">{t("backups.deleteOld")}</Label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="retention-days">
+                      {t("backups.deleteOlderThan")}
+                    </Label>
+                    <div className="relative flex items-center">
+                      <Input
+                        id="retention-days"
+                        className="min-w-0"
+                        type="number"
+                        min={1}
+                        max={3650}
+                        value={settings.retentionDays}
+                        disabled={!settings.retentionEnabled || autoSaveSettings.isPending}
+                        onChange={(event) =>
+                          setSettings({
+                            ...settings,
+                            retentionDays: Number(event.target.value),
+                          })
+                        }
+                        onBlur={(event) => {
+                          if (event.currentTarget.checkValidity()) autoSaveSettings.mutate(settings);
+                          else setSettings({ ...settings, retentionDays: lastSavedSettings()?.retentionDays ?? 30 });
+                        }}
+                      />
+                      <span className="pointer-events-none absolute right-6 z-10 text-sm text-neutral-500">{t("backups.days")}</span>
                     </div>
                   </div>
-                </>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                </SettingsFieldGrid>
+              </>
+            )}
+          </>
+        )}
+      </SettingsPanel>
 
       <section className="overflow-hidden rounded-3xl bg-white">
         <div className="flex items-center gap-3 border-b border-neutral-100 px-4 py-4">
           <DatabaseBackup className="h-5 w-5 text-neutral-500" />
           <h2 className="font-semibold text-neutral-900">{t("backups.history")}</h2>
         </div>
+        {/* The history is a real table; on narrow screens it scrolls sideways inside its card. */}
+        <div className="overflow-x-auto">
+        <div className="min-w-[680px]">
         <div className="grid grid-cols-[1fr_110px_110px_170px_120px] gap-4 border-b border-neutral-100 bg-neutral-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
           <span>{t("backups.col.file")}</span>
           <span>{t("backups.col.status")}</span>
@@ -454,6 +448,8 @@ export default function BackupsPage() {
             </div>
           </div>
         ))}
+        </div>
+        </div>
       </section>
     </div>
   );

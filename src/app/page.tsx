@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ShieldCheck, HardDrive, Globe2 } from "@/components/icons";
+import { Bot, CalendarDays, Globe2, HardDrive, Send, ShieldCheck } from "@/components/icons";
 import { TarleMailMark } from "@/components/brand/tarle-mail-mark";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth/cookies";
@@ -25,12 +25,26 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** A real screenshot of the app, with its dark-mode capture swapped in under the dark theme. */
-function ProductShot({ name, alt, priority = false }: { name: "thread" | "inbox" | "domains"; alt: string; priority?: boolean }) {
+function ProductShot({ name, alt, priority = false }: { name: "thread" | "mailboxes" | "compose" | "domains" | "usage"; alt: string; priority?: boolean }) {
   return (
     <div className="overflow-hidden rounded-[18px] bg-white shadow-[0_40px_90px_-40px_rgba(29,78,216,0.45)] ring-1 ring-black/5 dark:ring-white/10">
       <img src={`/landing/${name}-light.webp`} alt={alt} width={1600} height={1000} loading={priority ? "eager" : "lazy"} className="block h-auto w-full dark:hidden" />
       <img src={`/landing/${name}-dark.webp`} alt={alt} width={1600} height={1000} loading="lazy" className="hidden h-auto w-full dark:block" />
     </div>
+  );
+}
+
+/** A feature chapter: copy on one side, a screenshot on the other; stacked with the copy first on small screens. */
+function Chapter({ side, title, body, shot }: { side: "left" | "right"; title: string; body: string; shot: React.ReactNode }) {
+  const shotFirst = side === "left";
+  return (
+    <section data-chapter={side} className={`mx-auto mt-28 grid max-w-7xl grid-cols-1 items-center gap-10 px-4 sm:px-6 md:mt-40 lg:gap-16 lg:px-8 ${shotFirst ? "lg:grid-cols-[1.35fr_0.65fr]" : "lg:grid-cols-[0.65fr_1.35fr]"}`}>
+      <div className={shotFirst ? "lg:order-2" : undefined}>
+        <h2 data-reveal className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-neutral-950 sm:text-5xl">{title}</h2>
+        <p data-reveal className="mt-5 max-w-[42ch] text-lg leading-8 text-neutral-600">{body}</p>
+      </div>
+      <div data-chapter-shot className={shotFirst ? "lg:order-1" : undefined}>{shot}</div>
+    </section>
   );
 }
 
@@ -55,7 +69,7 @@ export default async function HomePage() {
       <LandingMotion />
       <div className="min-h-[100dvh] overflow-x-clip bg-neutral-50 text-neutral-900">
         <header className="sticky top-0 z-30 border-b border-black/[0.04] bg-neutral-50/75 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06]">
-          <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <Link href="/" className="flex items-center gap-2.5" aria-label={t("home.homeLabel", { app: branding.appName })}>
               {logo}
               <span className="hidden whitespace-nowrap text-[15px] font-semibold tracking-tight sm:inline">{branding.appName}</span>
@@ -88,50 +102,42 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section data-product-stage className="mx-auto mt-16 max-w-6xl px-4 [perspective:1600px] sm:px-6 md:mt-24 lg:px-8">
+          <section data-product-stage className="mx-auto mt-16 max-w-7xl px-4 [perspective:1600px] sm:px-6 md:mt-24 lg:px-8">
             <div data-product-shot>
               <ProductShot name="thread" alt={t("home.shot.thread")} priority />
             </div>
           </section>
 
-          <section data-chapter="right" className="mx-auto mt-28 grid max-w-6xl grid-cols-1 items-center gap-10 px-4 sm:px-6 md:mt-40 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
-            <div className="max-w-md">
-              <h2 data-reveal className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-neutral-950 sm:text-5xl">{t("home.chapter.inbox.title")}</h2>
-              <p data-reveal className="mt-5 text-lg leading-8 text-neutral-600">{t("home.chapter.inbox.body")}</p>
-            </div>
-            <div data-chapter-shot>
-              <ProductShot name="inbox" alt={t("home.shot.inbox")} />
-            </div>
-          </section>
+          <Chapter side="right" title={t("home.chapter.inbox.title")} body={t("home.chapter.inbox.body")} shot={<ProductShot name="mailboxes" alt={t("home.shot.mailboxes")} />} />
+          <Chapter side="left" title={t("home.chapter.compose.title")} body={t("home.chapter.compose.body")} shot={<ProductShot name="compose" alt={t("home.shot.compose")} />} />
 
-          <section className="mx-auto mt-28 max-w-5xl px-4 text-center sm:px-6 md:mt-40 lg:px-8">
-            <div data-chapter="none">
-              <h2 data-reveal className="mx-auto max-w-[18ch] text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-neutral-950 sm:text-6xl">{t("home.chapter.private.title")}</h2>
-              <p data-reveal className="mx-auto mt-5 max-w-[46ch] text-lg leading-8 text-neutral-600">{t("home.chapter.private.body")}</p>
+          <section className="mx-auto mt-28 max-w-7xl px-4 sm:px-6 md:mt-40 lg:px-8">
+            <div data-chapter="none" className="max-w-3xl">
+              <h2 data-reveal className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-neutral-950 sm:text-6xl">{t("home.chapter.private.title")}</h2>
+              <p data-reveal className="mt-5 max-w-[52ch] text-lg leading-8 text-neutral-600">{t("home.chapter.private.body")}</p>
             </div>
-            <ul data-facts className="mx-auto mt-14 grid max-w-4xl grid-cols-1 gap-10 text-left sm:grid-cols-3">
+            <ul data-facts className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {([
-                [ShieldCheck, "home.fact.access"],
-                [HardDrive, "home.fact.storage"],
-                [Globe2, "home.fact.source"],
-              ] as const).map(([Icon, key]) => (
-                <li data-fact key={key} className="border-t border-neutral-200 pt-5">
-                  <Icon className="h-6 w-6 text-[#1d4ed8] dark:text-[#93c5fd]" />
-                  <p className="mt-3 text-base font-medium leading-7 text-neutral-800">{t(key)}</p>
+                [ShieldCheck, "access", "lg:col-span-2"],
+                [HardDrive, "storage", ""],
+                [Send, "providers", ""],
+                [CalendarDays, "apps", "lg:col-span-2"],
+                [Bot, "agents", "lg:col-span-2"],
+                [Globe2, "source", ""],
+              ] as const).map(([Icon, key, span]) => (
+                <li data-fact key={key} className={`flex flex-col rounded-3xl bg-white p-7 ring-1 ring-black/[0.04] dark:ring-white/[0.06] ${span}`}>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#1d4ed8] dark:text-[#93c5fd]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-6 text-xl font-semibold tracking-[-0.01em] text-neutral-950">{t(`home.feature.${key}.title`)}</h3>
+                  <p className="mt-2 max-w-[48ch] text-base leading-7 text-neutral-600">{t(`home.feature.${key}.body`)}</p>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section data-chapter="left" className="mx-auto mt-28 grid max-w-6xl grid-cols-1 items-center gap-10 px-4 sm:px-6 md:mt-40 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-            <div data-chapter-shot className="order-2 lg:order-1">
-              <ProductShot name="domains" alt={t("home.shot.domains")} />
-            </div>
-            <div className="order-1 max-w-md lg:order-2">
-              <h2 data-reveal className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-neutral-950 sm:text-5xl">{t("home.chapter.domains.title")}</h2>
-              <p data-reveal className="mt-5 text-lg leading-8 text-neutral-600">{t("home.chapter.domains.body")}</p>
-            </div>
-          </section>
+          <Chapter side="right" title={t("home.chapter.domains.title")} body={t("home.chapter.domains.body")} shot={<ProductShot name="domains" alt={t("home.shot.domains")} />} />
+          <Chapter side="left" title={t("home.chapter.usage.title")} body={t("home.chapter.usage.body")} shot={<ProductShot name="usage" alt={t("home.shot.usage")} />} />
 
           <section data-chapter="none" className="mx-auto mt-32 flex max-w-3xl flex-col items-center px-4 pb-28 text-center sm:px-6 md:mt-44">
             <div data-reveal className="w-20">
@@ -144,7 +150,7 @@ export default async function HomePage() {
           </section>
         </main>
 
-        <footer className="mx-auto flex max-w-6xl flex-col gap-3 border-t border-neutral-200 px-4 py-8 text-sm text-neutral-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <footer className="mx-auto flex max-w-7xl flex-col gap-3 border-t border-neutral-200 px-4 py-8 text-sm text-neutral-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <span>{t("home.footer.license")}</span>
           <a href={SOURCE_URL} className="font-medium text-neutral-700 hover:text-neutral-950">
             {t("home.source")}

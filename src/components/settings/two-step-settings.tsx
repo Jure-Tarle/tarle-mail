@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Switch } from "@/components/ui/switch";
 import { beginMfaEnrollment, confirmMfaEnrollment, disableMfa } from "./utils";
 import { authErrorText } from "@/lib/auth/error-messages";
@@ -58,13 +59,9 @@ export function TwoStepSettings() {
 
 	if (!status) {
 		return (
-			<div className="space-y-5">
-				<div>
-					<h2 className="text-lg font-semibold text-neutral-900">{t("twoStep.title")}</h2>
-					<p className="mt-1 text-sm text-neutral-500">{t("twoStep.description")}</p>
-				</div>
+			<SettingsPanel title={t("twoStep.title")} description={t("twoStep.description")}>
 				<p role={loadFailed ? "alert" : undefined} className="text-sm text-neutral-500">{loadFailed ? t("mfa.loadFailed") : t("mfa.loading")}</p>
-			</div>
+			</SettingsPanel>
 		);
 	}
 
@@ -113,21 +110,25 @@ export function TwoStepSettings() {
 	}
 
 	return (
-		<div className="space-y-5">
-			<div>
-				<div className="flex items-center justify-between gap-4">
-					<h2 className="text-lg font-semibold text-neutral-900">{t("twoStep.title")}</h2>
-					{status.passwordSet && (
-						<Switch
-							checked={status.requireSecondFactor}
-							disabled={busy || (!hasAnyFactor && !status.requireSecondFactor)}
-							onCheckedChange={(enabled) => setPending(enabled ? "toggle-on" : "toggle-off")}
-							aria-label={t("twoStep.requireTitle")}
-						/>
-					)}
-				</div>
-				<p className="mt-1 text-sm text-neutral-500">{status.passwordSet ? t("twoStep.description") : t("twoStep.passwordlessDescription")}</p>
-			</div>
+		<SettingsPanel
+			title={t("twoStep.title")}
+			description={status.passwordSet ? t("twoStep.description") : t("twoStep.passwordlessDescription")}
+			status={error && <span role="alert" className="text-red-600">{error}</span>}
+		>
+			{status.passwordSet && (
+				<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+					<span className="flex-1">
+						<span className="block text-sm font-medium text-neutral-900">{t("twoStep.requireTitle")}</span>
+						<span className="mt-1 block text-sm text-neutral-500">{t("twoStep.requireDescription")}</span>
+					</span>
+					<Switch
+						checked={status.requireSecondFactor}
+						disabled={busy || (!hasAnyFactor && !status.requireSecondFactor)}
+						onCheckedChange={(enabled) => setPending(enabled ? "toggle-on" : "toggle-off")}
+						aria-label={t("twoStep.requireTitle")}
+					/>
+				</label>
+			)}
 
 			{status.passwordSet && !hasAnyFactor && (
 				<p className="text-xs leading-5 text-neutral-500">{t("twoStep.addMethodHint")}</p>
@@ -178,8 +179,6 @@ export function TwoStepSettings() {
 				</div>
 			)}
 
-			{error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-
 			<StepUpDialog
 				open={!!pending}
 				hasPassword={status.passwordSet}
@@ -225,6 +224,6 @@ export function TwoStepSettings() {
 					</div>
 				</DialogContent>
 			</Dialog>
-		</div>
+		</SettingsPanel>
 	);
 }

@@ -91,7 +91,7 @@ export default function AdminSettingsPage() {
 					{t("admin.description")}
 				</p>
 			</div>
-			<div className="grid lg:grid-cols-2 gap-4">
+			<div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
 				{sections.filter(canSee).map((section) => {
 					const Icon = section.icon;
 

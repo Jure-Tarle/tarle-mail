@@ -244,9 +244,9 @@ export function DashboardNav({ className }: { className?: string }) {
 
   return (
     <SidebarScaffold className={className} header={<SidebarHeader href="/inbox" />} footer={<SidebarFooter />}>
-      {/* Pick the mailbox first; compose and the folders below belong to that choice. */}
-      {!minimal && <MailboxesNavSection />}
       {composeLink && !mobile && <NavItem labelClassName="font-medium" link={composeLink} />}
+      {/* The mailbox choice heads the folders below it. */}
+      {!minimal && <MailboxesNavSection />}
       {minimal && <hr className="mx-6 my-2 border-neutral-200/70" />}
       <ReorderableList
         storageKey="tarle-mail:nav:layout"

@@ -7,6 +7,7 @@ import { isHtmlSignature } from "@/components/compose/rich-text-utils";
 import { EmailHtmlRenderer } from "@/components/messages/email-html-renderer";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { updateMailboxSignature } from "./utils";
 
@@ -45,14 +46,26 @@ export function MailboxSignatureForm() {
 		}
 	}
 
-	if (isLoading) return <p className="text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p>;
-	if (!selectedMailbox) return <p className="text-sm text-neutral-500">{t("settings.signature.selectInbox")}</p>;
+	const title = t("settings.account.signatureTitle");
+	const description = t("settings.account.signatureDescription");
+	if (isLoading) return <SettingsPanel title={title} description={description}><p className="text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p></SettingsPanel>;
+	if (!selectedMailbox) return <SettingsPanel title={title} description={description}><p className="text-sm text-neutral-500">{t("settings.signature.selectInbox")}</p></SettingsPanel>;
 
 	const address = `${selectedMailbox.localPart}@${selectedMailbox.hostname}`;
 	const canManage = selectedMailbox.permission === "full_access";
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-4">
+		<SettingsPanel
+			title={title}
+			description={description}
+			onSubmit={onSubmit}
+			status={(!canManage || status) && <>{!canManage && <span className="mr-3 text-neutral-500">{t("settings.signature.needFullAccess")}</span>}{status && <span className="text-neutral-500">{status}</span>}</>}
+			action={
+				<Button type="submit" disabled={!canManage || saving || signature.trim() === savedSignature}>
+					{saving ? t("common.saving") : t("settings.signature.save")}
+				</Button>
+			}
+		>
 			<div className="space-y-2">
 				<Label htmlFor="mailboxSignature">{t("settings.signature.for", { address })}</Label>
 				<Textarea
@@ -76,13 +89,6 @@ export function MailboxSignatureForm() {
 					/>
 				</div>
 			)}
-			<div className="flex items-center gap-3">
-				<Button type="submit" disabled={!canManage || saving || signature.trim() === savedSignature}>
-					{saving ? t("common.saving") : t("settings.signature.save")}
-				</Button>
-				{!canManage && <p className="text-sm text-neutral-500">{t("settings.signature.needFullAccess")}</p>}
-				{status && <p role="status" className="text-sm text-neutral-500">{status}</p>}
-			</div>
-		</form>
+		</SettingsPanel>
 	);
 }

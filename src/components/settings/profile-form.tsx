@@ -6,6 +6,7 @@ import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsFieldGrid, SettingsPanel } from "@/components/ui/settings-panel";
 import { authFetch } from "@/lib/auth/client";
 import { dispatchProfileNameChanged } from "@/lib/profile/name-client";
 import { InboxSwitcher } from "./inbox-switcher";
@@ -110,10 +111,10 @@ export function ProfileForm({
   }
 
   if (isLoading) {
-    return <p className="rounded-t-3xl rounded-b-lg bg-white p-6 text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p>;
+    return <p className="rounded-3xl bg-white p-6 text-sm text-neutral-500">{t("settings.signature.loadingInbox")}</p>;
   }
   if (!selectedMailbox) {
-    return <p className="rounded-t-3xl rounded-b-lg bg-white p-6 text-sm text-neutral-500">{t("settings.signature.selectInbox")}</p>;
+    return <p className="rounded-3xl bg-white p-6 text-sm text-neutral-500">{t("settings.signature.selectInbox")}</p>;
   }
 
   const address = getMailboxAddress(selectedMailbox);
@@ -121,11 +122,23 @@ export function ProfileForm({
 
   return (
     <>
-      <form
+      <SettingsPanel
+        title={t("settings.account.detailsTitle")}
+        description={t("settings.account.detailsDescription")}
         onSubmit={onProfileSubmit}
-        className="space-y-6 rounded-b-lg rounded-t-3xl bg-white p-6"
+        status={profileStatus}
+        action={
+          <Button
+            type="submit"
+            disabled={!canManage || savingProfile || name.trim() === savedName}
+          >
+            {savingProfile ? t("common.saving") : t("settings.profile.save")}
+          </Button>
+        }
       >
-        <InboxSwitcher />
+        <div className="max-w-md">
+          <InboxSwitcher />
+        </div>
         <div className="flex items-center gap-4">
           <ProfileAvatarForm
             mailboxId={selectedMailbox.id}
@@ -143,79 +156,63 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="name">{t("common.name")}</Label>
-          <Input
-            id="name"
-            autoComplete="name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={selectedMailbox.localPart}
-            required={isPrimary}
-            disabled={!canManage || savingProfile}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="accountEmail">{t("settings.profile.currentEmail")}</Label>
-          <Input
-            id="accountEmail"
-            autoComplete="email"
-            value={address}
-            type="email"
-            readOnly
-            aria-readonly="true"
-            className="bg-neutral-50"
-          />
-        </div>
+        <SettingsFieldGrid>
+          <div className="space-y-2">
+            <Label htmlFor="name">{t("common.name")}</Label>
+            <Input
+              id="name"
+              autoComplete="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={selectedMailbox.localPart}
+              required={isPrimary}
+              disabled={!canManage || savingProfile}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="accountEmail">{t("settings.profile.currentEmail")}</Label>
+            <Input
+              id="accountEmail"
+              autoComplete="email"
+              value={address}
+              type="email"
+              readOnly
+              aria-readonly="true"
+              className="bg-neutral-50"
+            />
+          </div>
+        </SettingsFieldGrid>
+      </SettingsPanel>
 
-        <div className="flex items-center gap-3">
-          <Button
-            type="submit"
-            disabled={!canManage || savingProfile || name.trim() === savedName}
-          >
-            {savingProfile ? t("common.saving") : t("settings.profile.save")}
-          </Button>
-          {profileStatus && (
-            <p className="text-sm text-neutral-500">{profileStatus}</p>
-          )}
-        </div>
-      </form>
-
-      {isPrimary && <form
-        onSubmit={onRecoverySubmit}
-        className="space-y-4 rounded-lg bg-white p-6"
-      >
-        <div>
-          <h3 className="text-lg font-semibold text-neutral-900">
-            {t("settings.profile.recoveryTitle")}
-          </h3>
-          <p className="mt-1 text-sm text-neutral-500">
-            {t("settings.profile.recoveryDescription")}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="resetEmail">{t("settings.profile.emailAddress")}</Label>
-          <Input
-            id="resetEmail"
-            autoComplete="email"
-            value={resetEmail}
-            onChange={(event) => setResetEmail(event.target.value)}
-            type="email"
-            placeholder="recovery@example.com"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            type="submit"
-            disabled={savingRecovery || resetEmail.trim() === savedResetEmail}
-          >
-            {savingRecovery ? t("common.saving") : t("settings.profile.saveRecovery")}
-          </Button>
-          {recoveryStatus && (
-            <p className="text-sm text-neutral-500">{recoveryStatus}</p>
-          )}
-        </div>
-      </form>}
+      {isPrimary && (
+        <SettingsPanel
+          title={t("settings.profile.recoveryTitle")}
+          description={t("settings.profile.recoveryDescription")}
+          onSubmit={onRecoverySubmit}
+          status={recoveryStatus}
+          action={
+            <Button
+              type="submit"
+              disabled={savingRecovery || resetEmail.trim() === savedResetEmail}
+            >
+              {savingRecovery ? t("common.saving") : t("settings.profile.saveRecovery")}
+            </Button>
+          }
+        >
+          <div className="space-y-2">
+            <Label htmlFor="resetEmail">{t("settings.profile.emailAddress")}</Label>
+            <Input
+              id="resetEmail"
+              autoComplete="email"
+              value={resetEmail}
+              onChange={(event) => setResetEmail(event.target.value)}
+              type="email"
+              placeholder="recovery@example.com"
+              className="sm:max-w-md"
+            />
+          </div>
+        </SettingsPanel>
+      )}
     </>
   );
 }

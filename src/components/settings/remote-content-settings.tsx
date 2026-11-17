@@ -47,19 +47,21 @@ export function RemoteContentSettings() {
 
 	return (
 		<div>
-			<div role="radiogroup" aria-label={t("settingsPage.inbox.remoteContent")} className="space-y-3">
-				{OPTIONS.map((option) => (
-					<label key={option.mode} className="flex cursor-pointer items-center gap-3 rounded-xl bg-neutral-50 p-4">
-						<input
-							type="radio"
-							name="remote-content-mode"
-														checked={mode === option.mode}
-							disabled={loading || saving}
-							onChange={() => choose(option.mode)}
-						/>
-						<span className="flex-1 text-sm font-medium text-neutral-900">{t(option.title)}</span>
-					</label>
-				))}
+			<div className="@container">
+				<div role="radiogroup" aria-label={t("settingsPage.inbox.remoteContent")} className="grid gap-3 @2xl:grid-cols-3">
+					{OPTIONS.map((option) => (
+						<label key={option.mode} className="flex cursor-pointer items-center gap-3 rounded-xl bg-neutral-50 p-4">
+							<input
+								type="radio"
+								name="remote-content-mode"
+															checked={mode === option.mode}
+								disabled={loading || saving}
+								onChange={() => choose(option.mode)}
+							/>
+							<span className="flex-1 text-sm font-medium text-neutral-900">{t(option.title)}</span>
+						</label>
+					))}
+				</div>
 			</div>
 			{error && <p role="alert" className="mt-2 px-4 text-sm text-red-600">{error}</p>}
 		</div>

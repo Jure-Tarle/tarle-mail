@@ -8,17 +8,11 @@ import { useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   createMailboxAlias,
@@ -155,249 +149,233 @@ export default function MailboxSettingsPage() {
         </p>
       )}
 
-      <Card className="rounded-3xl border-0 bg-white p-6">
-        <CardHeader className="py-0">
-          <CardTitle>{t("mailbox.account")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-5">
-          {mailbox.data ? (
-            <MailboxAvatarForm
-              mailboxId={mailbox.data.id}
-              hasAvatar={!!mailbox.data.hasAvatar}
-              name={mailbox.data.displayName || mailbox.data.localPart}
-            />
-          ) : (
-            <Skeleton className="h-24 w-24 rounded-full" />
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="displayName">{t("common.name")}</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder={mailbox.data?.localPart ?? t("mailboxes.namePlaceholder")}
-              disabled={mailbox.isLoading || updateName.isPending}
-            />
-          </div>
-          <label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
-            <Checkbox
-              checked={useAllDomains}
-              onChange={(event) => setUseAllDomains(event.target.checked)}
-              disabled={mailbox.isLoading || updateName.isPending}
-            />
-            <span>
-              <span className="block text-sm font-medium text-neutral-900">{t("aliases.useAll")}</span>
-              <span className="mt-1 block text-sm text-neutral-500">
-                {t("mailbox.useAllHint")}
-              </span>
-            </span>
-          </label>
-          {updateName.isError && (
-            <p className="text-sm text-red-600">
+      <SettingsPanel
+        title={t("mailbox.account")}
+        onSubmit={(event) => {
+          event.preventDefault();
+          updateName.mutate();
+        }}
+        status={
+          updateName.isError ? (
+            <span className="text-red-600">
               {updateName.error instanceof Error
                 ? updateName.error.message
                 : t("mailbox.updateFailed")}
-            </p>
-          )}
-          {updateName.isSuccess && (
-            <p className="text-sm text-green-700">{t("mailbox.saved")}</p>
-          )}
-          <Button
-            onClick={() => updateName.mutate()}
-            disabled={mailbox.isLoading || updateName.isPending}
-          >
+            </span>
+          ) : (
+            updateName.isSuccess && <span className="text-green-700">{t("mailbox.saved")}</span>
+          )
+        }
+        action={
+          <Button type="submit" disabled={mailbox.isLoading || updateName.isPending}>
             <Save className="h-4 w-4" />
             {updateName.isPending ? t("common.saving") : t("settings.mailbox.saveChanges")}
           </Button>
-        </CardContent>
-      </Card>
+        }
+      >
+        {mailbox.data ? (
+          <MailboxAvatarForm
+            mailboxId={mailbox.data.id}
+            hasAvatar={!!mailbox.data.hasAvatar}
+            name={mailbox.data.displayName || mailbox.data.localPart}
+          />
+        ) : (
+          <Skeleton className="h-24 w-24 rounded-full" />
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="displayName">{t("common.name")}</Label>
+          <Input
+            id="displayName"
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder={mailbox.data?.localPart ?? t("mailboxes.namePlaceholder")}
+            disabled={mailbox.isLoading || updateName.isPending}
+          />
+        </div>
+        <label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+          <Checkbox
+            checked={useAllDomains}
+            onChange={(event) => setUseAllDomains(event.target.checked)}
+            disabled={mailbox.isLoading || updateName.isPending}
+          />
+          <span>
+            <span className="block text-sm font-medium text-neutral-900">{t("aliases.useAll")}</span>
+            <span className="mt-1 block text-sm text-neutral-500">
+              {t("mailbox.useAllHint")}
+            </span>
+          </span>
+        </label>
+      </SettingsPanel>
 
       {mailbox.data && <MailboxStorageCard mailboxId={mailbox.data.id} />}
 
-      <Card className="rounded-3xl border-0 bg-white p-6">
-        <CardHeader className="py-0">
-          <CardTitle>{t("mailbox.aliases")}</CardTitle>
-          <CardDescription>
-            {t("mailbox.aliasesDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-5">
-          {aliases.isLoading && <Skeleton className="h-12 w-full rounded-2xl" />}
-          {(aliases.data?.aliases ?? []).map((alias) => (
+      <SettingsPanel title={t("mailbox.aliases")} description={t("mailbox.aliasesDescription")}>
+        {aliases.isLoading && <Skeleton className="h-12 w-full rounded-2xl" />}
+        {(aliases.data?.aliases ?? []).map((alias) => (
+          <div
+            key={alias.id}
+            className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <AtSign className="h-4 w-4 shrink-0 text-neutral-400" />
+              <p className="truncate no-font-mono text-sm font-medium text-neutral-900">
+                {alias.localPart}@{alias.hostname}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={t("mailbox.removeAddress", { address: `${alias.localPart}@${alias.hostname}` })}
+              disabled={removeAlias.isPending}
+              onClick={() => removeAlias.mutate(alias.id)}
+            >
+              <Trash2 className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
+        ))}
+        {aliases.data && aliases.data.aliases.length === 0 && (
+          <p className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+            {t("mailbox.noAliases")}
+          </p>
+        )}
+        {aliases.isError && (
+          <p className="text-sm text-red-600">
+            {aliases.error instanceof Error
+              ? aliases.error.message
+              : t("mailbox.aliasesLoadFailed")}
+          </p>
+        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={aliasLocalPart}
+            onChange={(event) => setAliasLocalPart(event.target.value)}
+            placeholder={t("mailbox.aliasPlaceholder")}
+            className="min-w-0 sm:flex-1"
+            disabled={addAlias.isPending}
+          />
+          <Select
+            value={aliasDomainId}
+            onChange={(event) => setAliasDomainId(event.target.value)}
+            containerClassName="min-w-0 sm:flex-1"
+            className="h-10 text-sm"
+            disabled={addAlias.isPending}
+          >
+            {(aliases.data?.availableDomains ?? []).map((domain) => (
+              <option key={domain.id} value={domain.id}>
+                @{domain.hostname}
+              </option>
+            ))}
+          </Select>
+          <Button
+            type="button"
+            disabled={!aliasLocalPart.trim() || !aliasDomainId || addAlias.isPending}
+            onClick={() => addAlias.mutate()}
+          >
+            <AtSign className="h-4 w-4" />
+            {addAlias.isPending ? t("account.mailboxes.adding") : t("mailbox.addAlias")}
+          </Button>
+        </div>
+        {addAlias.isError && (
+          <p className="text-sm text-red-600">
+            {addAlias.error instanceof Error ? addAlias.error.message : t("mailbox.aliasAddFailed")}
+          </p>
+        )}
+        {removeAlias.isError && (
+          <p className="text-sm text-red-600">
+            {removeAlias.error instanceof Error
+              ? removeAlias.error.message
+              : t("mailbox.aliasRemoveFailed")}
+          </p>
+        )}
+      </SettingsPanel>
+
+      {mailbox.data?.canManageSharing && (
+        <SettingsPanel title={t("mailbox.sharedAccess")} description={t("mailbox.sharedAccessDescription")}>
+          {sharedAccess.isLoading && <Skeleton className="h-16 w-full rounded-2xl" />}
+          {(sharedAccess.data?.members ?? []).map((member) => (
             <div
-              key={alias.id}
+              key={member.userId}
               className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3"
             >
-              <div className="flex min-w-0 items-center gap-2">
-                <AtSign className="h-4 w-4 shrink-0 text-neutral-400" />
-                <p className="truncate no-font-mono text-sm font-medium text-neutral-900">
-                  {alias.localPart}@{alias.hostname}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-neutral-900">
+                  {member.userName}
                 </p>
+                <p className="truncate text-xs text-neutral-500">{member.userEmail}</p>
               </div>
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
-                aria-label={t("mailbox.removeAddress", { address: `${alias.localPart}@${alias.hostname}` })}
-                disabled={removeAlias.isPending}
-                onClick={() => removeAlias.mutate(alias.id)}
+                aria-label={t("mailbox.removeAddress", { address: member.userName })}
+                disabled={removeMember.isPending}
+                onClick={() => removeMember.mutate(member.userId)}
               >
                 <Trash2 className="h-4 w-4 text-red-600" />
               </Button>
             </div>
           ))}
-          {aliases.data && aliases.data.aliases.length === 0 && (
+          {sharedAccess.data && sharedAccess.data.members.length === 0 && (
             <p className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
-              {t("mailbox.noAliases")}
+              {t("mailbox.noMembers")}
             </p>
           )}
-          {aliases.isError && (
+          {sharedAccess.isError && (
             <p className="text-sm text-red-600">
-              {aliases.error instanceof Error
-                ? aliases.error.message
-                : t("mailbox.aliasesLoadFailed")}
+              {sharedAccess.error instanceof Error
+                ? sharedAccess.error.message
+                : t("mailbox.sharedLoadFailed")}
             </p>
           )}
-          <div className="flex gap-2">
-            <Input
-              value={aliasLocalPart}
-              onChange={(event) => setAliasLocalPart(event.target.value)}
-              placeholder={t("mailbox.aliasPlaceholder")}
-              className="min-w-0 flex-1"
-              disabled={addAlias.isPending}
-            />
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Select
-              value={aliasDomainId}
-              onChange={(event) => setAliasDomainId(event.target.value)}
-              className="h-10 min-w-0 flex-1 text-sm"
-              disabled={addAlias.isPending}
+              value={selectedUserId}
+              onChange={(event) => setSelectedUserId(event.target.value)}
+              containerClassName="min-w-0 sm:flex-1"
+              className="h-10 text-sm"
             >
-              {(aliases.data?.availableDomains ?? []).map((domain) => (
-                <option key={domain.id} value={domain.id}>
-                  @{domain.hostname}
-                </option>
-              ))}
+              <option value="">{t("mailbox.chooseAccount")}</option>
+              {(sharedAccess.data?.availableUsers ?? [])
+                .filter(
+                  (account) =>
+                    !sharedAccess.data?.members.some((member) => member.userId === account.id),
+                )
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.email})
+                  </option>
+                ))}
             </Select>
             <Button
               type="button"
-              disabled={!aliasLocalPart.trim() || !aliasDomainId || addAlias.isPending}
-              onClick={() => addAlias.mutate()}
+              disabled={!selectedUserId || addMember.isPending}
+              onClick={() => addMember.mutate()}
             >
-              <AtSign className="h-4 w-4" />
-              {addAlias.isPending ? t("account.mailboxes.adding") : t("mailbox.addAlias")}
+              <UserPlus className="h-4 w-4" />
+              {addMember.isPending ? t("account.mailboxes.adding") : t("mailbox.addUser")}
             </Button>
           </div>
-          {addAlias.isError && (
+          {addMember.isError && (
             <p className="text-sm text-red-600">
-              {addAlias.error instanceof Error ? addAlias.error.message : t("mailbox.aliasAddFailed")}
+              {addMember.error instanceof Error ? addMember.error.message : t("mailbox.accountAddFailed")}
             </p>
           )}
-          {removeAlias.isError && (
-            <p className="text-sm text-red-600">
-              {removeAlias.error instanceof Error
-                ? removeAlias.error.message
-                : t("mailbox.aliasRemoveFailed")}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {mailbox.data?.canManageSharing && (
-        <Card className="rounded-3xl border-0 bg-white p-6">
-          <CardHeader className="py-0">
-            <CardTitle>{t("mailbox.sharedAccess")}</CardTitle>
-            <CardDescription>
-              {t("mailbox.sharedAccessDescription")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5">
-            {sharedAccess.isLoading && <Skeleton className="h-16 w-full rounded-2xl" />}
-            {(sharedAccess.data?.members ?? []).map((member) => (
-              <div
-                key={member.userId}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-neutral-900">
-                    {member.userName}
-                  </p>
-                  <p className="truncate text-xs text-neutral-500">{member.userEmail}</p>
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t("mailbox.removeAddress", { address: member.userName })}
-                  disabled={removeMember.isPending}
-                  onClick={() => removeMember.mutate(member.userId)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-600" />
-                </Button>
-              </div>
-            ))}
-            {sharedAccess.data && sharedAccess.data.members.length === 0 && (
-              <p className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
-                {t("mailbox.noMembers")}
-              </p>
-            )}
-            {sharedAccess.isError && (
-              <p className="text-sm text-red-600">
-                {sharedAccess.error instanceof Error
-                  ? sharedAccess.error.message
-                  : t("mailbox.sharedLoadFailed")}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Select
-                value={selectedUserId}
-                onChange={(event) => setSelectedUserId(event.target.value)}
-                className="h-10 min-w-0 flex-1 text-sm"
-              >
-                <option value="">{t("mailbox.chooseAccount")}</option>
-                {(sharedAccess.data?.availableUsers ?? [])
-                  .filter(
-                    (account) =>
-                      !sharedAccess.data?.members.some((member) => member.userId === account.id),
-                  )
-                  .map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.email})
-                    </option>
-                  ))}
-              </Select>
-              <Button
-                type="button"
-                disabled={!selectedUserId || addMember.isPending}
-                onClick={() => addMember.mutate()}
-              >
-                <UserPlus className="h-4 w-4" />
-                {addMember.isPending ? t("account.mailboxes.adding") : t("mailbox.addUser")}
-              </Button>
-            </div>
-            {addMember.isError && (
-              <p className="text-sm text-red-600">
-                {addMember.error instanceof Error ? addMember.error.message : t("mailbox.accountAddFailed")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        </SettingsPanel>
       )}
-      <Card className="rounded-3xl border-0 bg-white p-6">
-        <CardHeader className="py-0">
-          <CardTitle className="text-red-700">{t("mailbox.dangerZone")}</CardTitle>
-          <CardDescription>
-            {t("mailbox.dangerDescription", { address: address || t("mailbox.thisAddress") })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-5">
-          {removeMailbox.isError && (
-            <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <SettingsPanel
+        title={<span className="text-red-700">{t("mailbox.dangerZone")}</span>}
+        status={
+          removeMailbox.isError && (
+            <span className="text-red-700">
               {removeMailbox.error instanceof Error
                 ? removeMailbox.error.message
                 : t("mailbox.deleteFailed")}
-            </p>
-          )}
+            </span>
+          )
+        }
+        action={
           <Button
             type="button"
             variant="destructive"
@@ -410,8 +388,10 @@ export default function MailboxSettingsPage() {
             <Trash2 className="h-4 w-4" />
             {removeMailbox.isPending ? t("mailbox.deleting") : t("mailbox.delete")}
           </Button>
-        </CardContent>
-      </Card>
+        }
+      >
+        <p className="text-sm text-neutral-600">{t("mailbox.dangerDescription", { address: address || t("mailbox.thisAddress") })}</p>
+      </SettingsPanel>
 
 {/* 
       <Card className="rounded-3xl border-0 bg-white p-6">

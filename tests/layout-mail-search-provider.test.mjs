@@ -11,10 +11,10 @@ const app = join(root, "src/app");
 
 // NavItem calls useMailSearch(), which previously threw outside MailSearchProvider. Every
 // sidebar built from NavItem therefore needs the provider above it in its layout.
-const navComponents = readdirSync(components)
-	.filter((file) => file.endsWith(".tsx"))
-	.map((file) => readFileSync(join(components, file), "utf8"))
-	.filter((source) => /import\s*\{[^}]*\bNavItem\b[^}]*\}\s*from\s*"\.\/components-nav"/.test(source))
+const navComponents = readdirSync(components, { recursive: true })
+	.filter((file) => String(file).endsWith(".tsx"))
+	.map((file) => readFileSync(join(components, String(file)), "utf8"))
+	.filter((source) => /import\s*\{[^}]*\bNavItem\b[^}]*\}\s*from\s*"(?:\.\/|\.\.\/)+components-nav"/.test(source))
 	.flatMap((source) => [...source.matchAll(/export function (\w+)/g)].map((match) => match[1]));
 
 const layouts = readdirSync(app, { withFileTypes: true })

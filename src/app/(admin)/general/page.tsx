@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsFieldGrid, SettingsPanel } from "@/components/ui/settings-panel";
 import { Switch } from "@/components/ui/switch";
 import ProviderLimitsCard from "./ProviderLimitsCard";
 import { loadGeneralSettings, saveGeneralSettings } from "./utils";
@@ -81,35 +81,40 @@ export default function GeneralSettingsPage() {
 
 	return <div className="space-y-6">
 		<div><h1 className="text-2xl md:text-3xl font-medium text-neutral-900">{t("general.title")}</h1><p className="mt-2 text-sm text-neutral-500">{t("general.description")}</p></div>
-		<Card className="rounded-3xl border-0 bg-white p-6">
-			<CardHeader className="py-0"><CardTitle>{t("general.attachments")}</CardTitle></CardHeader>
-			<CardContent className="pt-6"><form onSubmit={save} className="space-y-4">
-				<div className="space-y-2"><Label htmlFor="attachment-limit">{t("general.maxAttachments")}</Label><Input id="attachment-limit" type="number" min="1" max="25" step="1" value={maxMb} onChange={(event) => setMaxMb(Number(event.target.value))} disabled={!loaded || saving} className="max-w-40" required /><p className="text-sm text-neutral-500">{t("general.appliesTo")}</p></div>
-				<div className="space-y-2 rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700"><p>{t("general.cloudflareLimit")}</p><p>{t("general.largeFiles")}</p></div>
-				{status && <p role="status" className="text-sm text-neutral-700">{status}</p>}
-				<Button type="submit" disabled={!loaded || saving || !Number.isInteger(maxMb) || maxMb < 1 || maxMb > 25}>{saving ? t("common.saving") : t("general.save")}</Button>
-			</form></CardContent>
-		</Card>
-		<Card className="rounded-3xl border-0 bg-white p-6">
-			<CardHeader className="py-0"><CardTitle>{t("general.drive")}</CardTitle></CardHeader>
-			<CardContent className="pt-6"><form onSubmit={saveDrive} className="space-y-4">
-				<div className="flex items-center gap-3"><Switch id="drive-unlimited" checked={unlimited} onCheckedChange={setUnlimited} disabled={!loaded || driveSaving} /><Label htmlFor="drive-unlimited">{t("general.driveUnlimited")}</Label></div>
-				{!unlimited && <div className="space-y-2"><Label htmlFor="drive-limit">{t("general.driveLimit")}</Label><Input id="drive-limit" type="number" min="0.01" max="1000000" step="any" value={limitGb} onChange={(event) => setLimitGb(Number(event.target.value))} disabled={!loaded || driveSaving} className="max-w-40" required /></div>}
-				<p className="text-sm text-neutral-500">{t("general.driveHint")}</p>
-				{driveStatus && <p role="status" className="text-sm text-neutral-700">{driveStatus}</p>}
-				<Button type="submit" disabled={!loaded || driveSaving || (!unlimited && !(limitGb > 0))}>{driveSaving ? t("common.saving") : t("general.save")}</Button>
-			</form></CardContent>
-		</Card>
-		<Card className="rounded-3xl border-0 bg-white p-6">
-			<CardHeader className="py-0"><CardTitle>{t("general.mailboxLimits")}</CardTitle></CardHeader>
-			<CardContent className="pt-6"><form onSubmit={saveMailboxLimits} className="space-y-4">
-				<div className="space-y-2"><Label htmlFor="mailbox-storage-limit">{t("general.mailboxStorageLimit")}</Label><Input id="mailbox-storage-limit" type="number" min="0.01" max="1000000" step="any" value={mailboxStorageGb} onChange={(event) => setMailboxStorageGb(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} className="max-w-40" /></div>
-				<div className="space-y-2"><Label htmlFor="mailbox-daily-limit">{t("general.mailboxDailyLimit")}</Label><Input id="mailbox-daily-limit" type="number" min="1" step="1" value={mailboxDailySend} onChange={(event) => setMailboxDailySend(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} className="max-w-40" /></div>
-				<p className="text-sm text-neutral-500">{t("general.mailboxLimitsHint")}</p>
-				{mailboxStatus && <p role="status" className="text-sm text-neutral-700">{mailboxStatus}</p>}
-				<Button type="submit" disabled={!loaded || mailboxSaving || !mailboxLimitsValid}>{mailboxSaving ? t("common.saving") : t("general.save")}</Button>
-			</form></CardContent>
-		</Card>
+		<SettingsPanel
+			title={t("general.attachments")}
+			description={t("general.appliesTo")}
+			onSubmit={save}
+			status={status}
+			action={<Button type="submit" disabled={!loaded || saving || !Number.isInteger(maxMb) || maxMb < 1 || maxMb > 25}>{saving ? t("common.saving") : t("general.save")}</Button>}
+		>
+			<div className="space-y-2"><Label htmlFor="attachment-limit">{t("general.maxAttachments")}</Label><Input id="attachment-limit" type="number" min="1" max="25" step="1" value={maxMb} onChange={(event) => setMaxMb(Number(event.target.value))} disabled={!loaded || saving} className="sm:max-w-xs" required /></div>
+			<div className="space-y-2 rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700"><p>{t("general.cloudflareLimit")}</p><p>{t("general.largeFiles")}</p></div>
+		</SettingsPanel>
+		<SettingsPanel
+			title={t("general.drive")}
+			description={t("general.driveHint")}
+			onSubmit={saveDrive}
+			status={driveStatus}
+			action={<Button type="submit" disabled={!loaded || driveSaving || (!unlimited && !(limitGb > 0))}>{driveSaving ? t("common.saving") : t("general.save")}</Button>}
+		>
+			<SettingsFieldGrid className="items-end">
+				<div className="flex min-h-10 items-center gap-3"><Switch id="drive-unlimited" checked={unlimited} onCheckedChange={setUnlimited} disabled={!loaded || driveSaving} /><Label htmlFor="drive-unlimited">{t("general.driveUnlimited")}</Label></div>
+				{!unlimited && <div className="space-y-2"><Label htmlFor="drive-limit">{t("general.driveLimit")}</Label><Input id="drive-limit" type="number" min="0.01" max="1000000" step="any" value={limitGb} onChange={(event) => setLimitGb(Number(event.target.value))} disabled={!loaded || driveSaving} required /></div>}
+			</SettingsFieldGrid>
+		</SettingsPanel>
+		<SettingsPanel
+			title={t("general.mailboxLimits")}
+			description={t("general.mailboxLimitsHint")}
+			onSubmit={saveMailboxLimits}
+			status={mailboxStatus}
+			action={<Button type="submit" disabled={!loaded || mailboxSaving || !mailboxLimitsValid}>{mailboxSaving ? t("common.saving") : t("general.save")}</Button>}
+		>
+			<SettingsFieldGrid>
+				<div className="space-y-2"><Label htmlFor="mailbox-storage-limit">{t("general.mailboxStorageLimit")}</Label><Input id="mailbox-storage-limit" type="number" min="0.01" max="1000000" step="any" value={mailboxStorageGb} onChange={(event) => setMailboxStorageGb(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} /></div>
+				<div className="space-y-2"><Label htmlFor="mailbox-daily-limit">{t("general.mailboxDailyLimit")}</Label><Input id="mailbox-daily-limit" type="number" min="1" step="1" value={mailboxDailySend} onChange={(event) => setMailboxDailySend(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} /></div>
+			</SettingsFieldGrid>
+		</SettingsPanel>
 		<ProviderLimitsCard />
 	</div>;
 }

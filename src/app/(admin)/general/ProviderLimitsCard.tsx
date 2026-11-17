@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ProviderCredentialStatus } from "@/lib/email/outbound-provider-types";
@@ -80,13 +80,9 @@ export default function ProviderLimitsCard() {
 	useEffect(() => { load(); }, [load]);
 
 	return (
-		<Card className="rounded-3xl border-0 bg-white p-6">
-			<CardHeader className="py-0"><CardTitle>{t("providers.title")}</CardTitle></CardHeader>
-			<CardContent className="space-y-4 pt-6">
-				<p className="text-sm text-neutral-500">{t("providers.description")}</p>
-				{error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-				{providers && <ul className="space-y-3">{providers.map((status) => <ProviderRow key={`${status.provider}:${status.limit.daily}:${status.limit.monthly}`} status={status} onChanged={load} />)}</ul>}
-			</CardContent>
-		</Card>
+		<SettingsPanel title={t("providers.title")} description={t("providers.description")}>
+			{error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+			{providers && <ul className="grid gap-3 2xl:grid-cols-2">{providers.map((status) => <ProviderRow key={`${status.provider}:${status.limit.daily}:${status.limit.monthly}`} status={status} onChanged={load} />)}</ul>}
+		</SettingsPanel>
 	);
 }

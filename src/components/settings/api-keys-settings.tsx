@@ -94,7 +94,7 @@ export function ApiKeysSettings() {
 			</DialogContent>
 		</Dialog>
 		</div>
-		<p className="text-sm text-neutral-500">{t("apiKeys.description")}</p>
+		<p className="max-w-prose text-sm text-neutral-500">{t("apiKeys.description")}</p>
 		{error && !createOpen && <p role="alert" className="text-sm text-red-600">{error}</p>}
 		<section className="space-y-3">
 			{loading && <SectionRowSkeleton />}

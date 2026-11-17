@@ -48,40 +48,42 @@ export function ComposeDefaultsSettings() {
 	}
 
 	return (
-		<div className="space-y-3">
-			<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
-				<span className="flex-1">
-					<span className="block text-sm font-medium text-neutral-900">{t("settings.compose.trackOpensTitle")}</span>
-					<span className="mt-1 block text-sm text-neutral-500">{t("settings.compose.trackOpensDescription")}</span>
-				</span>
-				<Switch
-					checked={preferences.trackOpensDefault}
-					disabled={loading || saving}
-					onCheckedChange={(trackOpensDefault) => change({ trackOpensDefault })}
-					aria-label={t("settings.compose.trackOpensTitle")}
-				/>
-			</label>
-			<div className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
-				<span className="flex-1">
-					<label htmlFor="compose-undo-send" className="block text-sm font-medium text-neutral-900">{t("settings.compose.undoTitle")}</label>
-					<span className="mt-1 block text-sm text-neutral-500">{t("settings.compose.undoDescription")}</span>
-				</span>
-				<Select
-					id="compose-undo-send"
-					value={String(preferences.undoSendSeconds)}
-					disabled={loading || saving}
-					className="py-1.5 text-sm text-neutral-900"
-					onChange={(event) => {
-						const undoSendSeconds = parseUndoSendSeconds(event.target.value);
-						if (undoSendSeconds !== null) change({ undoSendSeconds });
-					}}
-				>
-					{UNDO_SEND_OPTIONS.map((seconds) => (
-						<option key={seconds} value={seconds}>
-							{seconds === 0 ? t("settings.compose.undoOff") : t("settings.compose.undoSeconds", { seconds })}
-						</option>
-					))}
-				</Select>
+		<div className="@container space-y-3">
+			<div className="grid gap-3 @xl:grid-cols-2">
+				<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+					<span className="flex-1">
+						<span className="block text-sm font-medium text-neutral-900">{t("settings.compose.trackOpensTitle")}</span>
+						<span className="mt-1 block text-sm text-neutral-500">{t("settings.compose.trackOpensDescription")}</span>
+					</span>
+					<Switch
+						checked={preferences.trackOpensDefault}
+						disabled={loading || saving}
+						onCheckedChange={(trackOpensDefault) => change({ trackOpensDefault })}
+						aria-label={t("settings.compose.trackOpensTitle")}
+					/>
+				</label>
+				<div className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+					<span className="flex-1">
+						<label htmlFor="compose-undo-send" className="block text-sm font-medium text-neutral-900">{t("settings.compose.undoTitle")}</label>
+						<span className="mt-1 block text-sm text-neutral-500">{t("settings.compose.undoDescription")}</span>
+					</span>
+					<Select
+						id="compose-undo-send"
+						value={String(preferences.undoSendSeconds)}
+						disabled={loading || saving}
+						className="py-1.5 text-sm text-neutral-900"
+						onChange={(event) => {
+							const undoSendSeconds = parseUndoSendSeconds(event.target.value);
+							if (undoSendSeconds !== null) change({ undoSendSeconds });
+						}}
+					>
+						{UNDO_SEND_OPTIONS.map((seconds) => (
+							<option key={seconds} value={seconds}>
+								{seconds === 0 ? t("settings.compose.undoOff") : t("settings.compose.undoSeconds", { seconds })}
+							</option>
+						))}
+					</Select>
+				</div>
 			</div>
 			{error && <p role="alert" className="px-4 text-sm text-red-600">{error}</p>}
 		</div>

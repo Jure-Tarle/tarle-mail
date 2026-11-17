@@ -8,16 +8,10 @@ import type { TranslationKey } from "@/lib/i18n/types";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SettingsFieldGrid, SettingsPanel } from "@/components/ui/settings-panel";
 import { ImportJobs } from "@/components/settings/import-jobs";
 import { importMessageFiles } from "@/components/settings/import-messages-utils";
 import { TakeoutImport } from "@/components/settings/takeout-import";
@@ -199,301 +193,294 @@ export default function SettingsImportPage() {
 
       <ImportJobs refreshKey={jobsRefresh} />
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold text-neutral-900">
-            {t("importPage.title")}
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            {t("importPage.description")}
-          </p>
-        </div>
-        <div className="space-y-1 overflow-hidden rounded-3xl">
-          <CardContent className="space-y-6 rounded-b-lg rounded-t-3xl bg-white p-6">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="import-source">{t("importPage.source")}</Label>
-              <Select
-                id="import-source"
-                value={activeTab}
-                onChange={(event) =>
-                  setActiveTab(event.target.value as ImportTab)
-                }
-                className="text-sm w-full py-2"
-                // className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm shadow-neutral-200/50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      <SettingsPanel
+        title={t("importPage.title")}
+        description={t("importPage.description")}
+        action={
+          activeTab === "file" ? (
+            <Button
+              type="submit"
+              form="import-file-form"
+              disabled={
+                !selectedMailbox ||
+                selectedSources.length === 0 ||
+                files.length === 0 ||
+                fileLoading
+              }
+            >
+              {fileLoading ? t("import.importing") : t("importPage.importFiles")}
+            </Button>
+          ) : activeTab === "imap" ? (
+            <Button
+              type="submit"
+              form="import-imap-form"
+              disabled={
+                !selectedMailbox ||
+                selectedSources.length === 0 ||
+                !imapForm.host ||
+                !imapForm.username ||
+                !imapForm.password ||
+                imapLoading
+              }
+            >
+              <Upload className="h-4 w-4" />
+              {imapLoading ? t("import.importing") : t("importPage.importSources")}
+            </Button>
+          ) : null
+        }
+      >
+        <SettingsFieldGrid className="items-start">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="import-source">{t("importPage.source")}</Label>
+            <Select
+              id="import-source"
+              value={activeTab}
+              onChange={(event) =>
+                setActiveTab(event.target.value as ImportTab)
+              }
+              className="text-sm w-full py-2"
+              // className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm shadow-neutral-200/50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="file">{t("importPage.backupFile")}</option>
+              <option value="imap">{t("importPage.imap")}</option>
+              <option value="takeout">{t("importPage.takeout")}</option>
+            </Select>
+          </div>
+          {activeTab !== "takeout" && (
+          <div className="space-y-2">
+            <Label>{t("importPage.chooseSections")}</Label>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSourceDropdownOpen((open) => !open)}
+                className="flex w-full items-center justify-between rounded-md border border-neutral-200 bg-white px-3 py-2 text-left text-sm shadow-sm shadow-neutral-200/50"
               >
-                <option value="file">{t("importPage.backupFile")}</option>
-                <option value="imap">{t("importPage.imap")}</option>
-                <option value="takeout">{t("importPage.takeout")}</option>
-              </Select>
+                <label className="flex-1">{t("importPage.selected")}</label>
+                <span className="truncate">{sourceSummary}</span>
+                <span className="text-neutral-500 px-2">▾</span>
+              </button>
+              {sourceDropdownOpen && (
+                <div className="absolute z-20 mt-2 w-full rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+                  {importSourceOptions.map((option) => (
+                    <label
+                      key={option.value}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                    >
+                      <Checkbox
+                        checked={selectedSections.includes(option.value)}
+                        onChange={(event) =>
+                          toggleSection(option.value, event.target.checked)
+                        }
+                      />
+                      {t(SECTION_LABEL_KEYS[option.value])}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
-            {activeTab === "takeout" ? (
-              <TakeoutImport />
-            ) : (
-            <>
-            <div className="space-y-2">
-              <Label>{t("importPage.chooseSections")}</Label>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setSourceDropdownOpen((open) => !open)}
-                  className="flex w-full items-center justify-between rounded-md border border-neutral-200 bg-white px-3 py-2 text-left text-sm shadow-sm shadow-neutral-200/50"
-                >
-                  <label className="flex-1">{t("importPage.selected")}</label>
-                  <span className="truncate">{sourceSummary}</span>
-                  <span className="text-neutral-500 px-2">▾</span>
-                </button>
-                {sourceDropdownOpen && (
-                  <div className="absolute z-20 mt-2 w-full rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
-                    {importSourceOptions.map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
-                      >
-                        <Checkbox
-                          checked={selectedSections.includes(option.value)}
-                          onChange={(event) =>
-                            toggleSection(option.value, event.target.checked)
-                          }
-                        />
-                        {t(SECTION_LABEL_KEYS[option.value])}
-                      </label>
-                    ))}
-                  </div>
-                )}
+          </div>
+          )}
+        </SettingsFieldGrid>
+        {activeTab === "takeout" ? (
+          <TakeoutImport />
+        ) : activeTab === "file" ? (
+          <>
+            <form id="import-file-form" onSubmit={onFileSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="import-files">{t("importPage.selectFile")}</Label>
+                <Input
+                  id="import-files"
+                  type="file"
+                  accept=".eml,.mbox,.mbx,message/rfc822,application/mbox"
+                  multiple
+                  onChange={(event) =>
+                    setFiles(Array.from(event.target.files ?? []))
+                  }
+                  className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-1 text-sm shadow-sm shadow-neutral-200/50 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium"
+                />
+                <p className="text-xs leading-5 text-neutral-500">
+                  {t("importPage.fileHint", { section: sourceLabel(fileImportSource) })}
+                </p>
               </div>
-              {/* <p className="text-xs leading-5 text-neutral-500">
-            Select Folders to import every source IMAP folder into matching
-            Tarle Mail folders.
-          </p> */}
-            </div>
-
-            {activeTab === "file" ? (
-              <>
-                <form onSubmit={onFileSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="import-files">{t("importPage.selectFile")}</Label>
-                    <Input
-                      id="import-files"
-                      type="file"
-                      accept=".eml,.mbox,.mbx,message/rfc822,application/mbox"
-                      multiple
-                      onChange={(event) =>
-                        setFiles(Array.from(event.target.files ?? []))
-                      }
-                      className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-1 text-sm shadow-sm shadow-neutral-200/50 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium"
+              {selectedSections.includes("others") && (
+                <p className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  {t("importPage.othersNote")}
+                </p>
+              )}
+              {fileProgress && (
+                <div
+                  className="space-y-1 text-xs text-neutral-500"
+                  aria-live="polite"
+                >
+                  <div className="flex justify-between">
+                    <span>{fileProgress.label}</span>
+                    <span>{fileProgress.completed}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className="h-full bg-blue-600 transition-[width]"
+                      style={{ width: `${fileProgress.completed}%` }}
                     />
-                    <p className="text-xs leading-5 text-neutral-500">
-                      {t("importPage.fileHint", { section: sourceLabel(fileImportSource) })}
-                    </p>
                   </div>
-                  {selectedSections.includes("others") && (
-                    <p className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      {t("importPage.othersNote")}
-                    </p>
-                  )}
-                  <Button
-                    type="submit"
-                    disabled={
-                      !selectedMailbox ||
-                      selectedSources.length === 0 ||
-                      files.length === 0 ||
-                      fileLoading
+                </div>
+              )}
+              {fileStarted && (
+                <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  {t("importJobs.started")}
+                </p>
+              )}
+              {fileError && (
+                <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {fileError}
+                </p>
+              )}
+            </form>
+          </>
+        ) : (
+          <>
+            <form id="import-imap-form" onSubmit={onImapSubmit} className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[1fr_110px]">
+                <div className="space-y-2">
+                  <Label htmlFor="imap-host">{t("importPage.host")}</Label>
+                  <Input
+                    id="imap-host"
+                    value={imapForm.host}
+                    onChange={(event) =>
+                      setImapForm({ ...imapForm, host: event.target.value })
                     }
-                  >
-                    {fileLoading ? t("import.importing") : t("importPage.importFiles")}
-                  </Button>
-                  {fileProgress && (
-                    <div
-                      className="space-y-1 text-xs text-neutral-500"
-                      aria-live="polite"
-                    >
-                      <div className="flex justify-between">
-                        <span>{fileProgress.label}</span>
-                        <span>{fileProgress.completed}%</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                        <div
-                          className="h-full bg-blue-600 transition-[width]"
-                          style={{ width: `${fileProgress.completed}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {fileStarted && (
-                    <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
-                      {t("importJobs.started")}
-                    </p>
-                  )}
-                  {fileError && (
-                    <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {fileError}
-                    </p>
-                  )}
-                </form>
-              </>
-            ) : (
-              <>
-                <form onSubmit={onImapSubmit} className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-[1fr_110px]">
-                    <div className="space-y-2">
-                      <Label htmlFor="imap-host">{t("importPage.host")}</Label>
-                      <Input
-                        id="imap-host"
-                        value={imapForm.host}
-                        onChange={(event) =>
-                          setImapForm({ ...imapForm, host: event.target.value })
-                        }
-                        placeholder="imap.gmail.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="imap-port">{t("importPage.port")}</Label>
-                      <Input
-                        id="imap-port"
-                        type="number"
-                        value={imapForm.port}
-                        onChange={(event) =>
-                          setImapForm({ ...imapForm, port: event.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="imap-username">{t("importPage.username")}</Label>
-                      <Input
-                        id="imap-username"
-                        value={imapForm.username}
-                        onChange={(event) =>
-                          setImapForm({
-                            ...imapForm,
-                            username: event.target.value,
-                          })
-                        }
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="imap-password">
-                        {t("importPage.passwordOrApp")}
-                      </Label>
-                      <Input
-                        id="imap-password"
-                        type="password"
-                        value={imapForm.password}
-                        onChange={(event) =>
-                          setImapForm({
-                            ...imapForm,
-                            password: event.target.value,
-                          })
-                        }
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="imap-limit">
-                        {imapForm.importAll
-                          ? t("importPage.perBatch")
-                          : t("importPage.perSource")}
-                      </Label>
-                      <Input
-                        id="imap-limit"
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={imapForm.limit}
-                        onChange={(event) =>
-                          setImapForm({
-                            ...imapForm,
-                            limit: event.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <label className="flex items-end gap-2 pb-2 text-sm text-neutral-700">
-                      <Checkbox
-                        checked={imapForm.importAll}
-                        onChange={(event) =>
-                          setImapForm({
-                            ...imapForm,
-                            importAll: event.target.checked,
-                          })
-                        }
-                      />
-                      {t("importPage.importAll")}
-                    </label>
-                    <label className="flex items-end gap-2 pb-2 text-sm text-neutral-700">
-                      <Checkbox
-                        checked={imapForm.secure}
-                        onChange={(event) =>
-                          setImapForm({
-                            ...imapForm,
-                            secure: event.target.checked,
-                          })
-                        }
-                      />
-                      {t("importPage.useTls")}
-                    </label>
-                  </div>
-                  <p className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-5 text-neutral-500">
-                    {t("importPage.imapNote")}
-                  </p>
-                  <Button
-                    type="submit"
-                    disabled={
-                      !selectedMailbox ||
-                      selectedSources.length === 0 ||
-                      !imapForm.host ||
-                      !imapForm.username ||
-                      !imapForm.password ||
-                      imapLoading
+                    placeholder="imap.gmail.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imap-port">{t("importPage.port")}</Label>
+                  <Input
+                    id="imap-port"
+                    type="number"
+                    value={imapForm.port}
+                    onChange={(event) =>
+                      setImapForm({ ...imapForm, port: event.target.value })
                     }
-                  >
-                    <Upload className="h-4 w-4" />
-                    {imapLoading ? t("import.importing") : t("importPage.importSources")}
-                  </Button>
-                  {imapProgress && (
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="imap-username">{t("importPage.username")}</Label>
+                  <Input
+                    id="imap-username"
+                    value={imapForm.username}
+                    onChange={(event) =>
+                      setImapForm({
+                        ...imapForm,
+                        username: event.target.value,
+                      })
+                    }
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imap-password">
+                    {t("importPage.passwordOrApp")}
+                  </Label>
+                  <Input
+                    id="imap-password"
+                    type="password"
+                    value={imapForm.password}
+                    onChange={(event) =>
+                      setImapForm({
+                        ...imapForm,
+                        password: event.target.value,
+                      })
+                    }
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="imap-limit">
+                    {imapForm.importAll
+                      ? t("importPage.perBatch")
+                      : t("importPage.perSource")}
+                  </Label>
+                  <Input
+                    id="imap-limit"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={imapForm.limit}
+                    onChange={(event) =>
+                      setImapForm({
+                        ...imapForm,
+                        limit: event.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <label className="flex items-end gap-2 pb-2 text-sm text-neutral-700">
+                  <Checkbox
+                    checked={imapForm.importAll}
+                    onChange={(event) =>
+                      setImapForm({
+                        ...imapForm,
+                        importAll: event.target.checked,
+                      })
+                    }
+                  />
+                  {t("importPage.importAll")}
+                </label>
+                <label className="flex items-end gap-2 pb-2 text-sm text-neutral-700">
+                  <Checkbox
+                    checked={imapForm.secure}
+                    onChange={(event) =>
+                      setImapForm({
+                        ...imapForm,
+                        secure: event.target.checked,
+                      })
+                    }
+                  />
+                  {t("importPage.useTls")}
+                </label>
+              </div>
+              <p className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-5 text-neutral-500">
+                {t("importPage.imapNote")}
+              </p>
+              {imapProgress && (
+                <div
+                  className="space-y-1 text-xs text-neutral-500"
+                  aria-live="polite"
+                >
+                  <div className="flex justify-between">
+                    <span>{imapProgress.label}</span>
+                    <span>
+                      {imapProgress.completed}/{imapProgress.total}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
                     <div
-                      className="space-y-1 text-xs text-neutral-500"
-                      aria-live="polite"
-                    >
-                      <div className="flex justify-between">
-                        <span>{imapProgress.label}</span>
-                        <span>
-                          {imapProgress.completed}/{imapProgress.total}
-                        </span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                        <div
-                          className="h-full bg-blue-600 transition-[width]"
-                          style={{
-                            width: `${Math.round((imapProgress.completed / imapProgress.total) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {imapStarted && (
-                    <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
-                      {t("importJobs.started")}
-                    </p>
-                  )}
-                  {imapError && (
-                    <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {imapError}
-                    </p>
-                  )}
-                </form>
-              </>
-            )}
-            </>
-            )}
-          </CardContent>
-        </div>
-      </section>
+                      className="h-full bg-blue-600 transition-[width]"
+                      style={{
+                        width: `${Math.round((imapProgress.completed / imapProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {imapStarted && (
+                <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  {t("importJobs.started")}
+                </p>
+              )}
+              {imapError && (
+                <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {imapError}
+                </p>
+              )}
+            </form>
+          </>
+        )}
+      </SettingsPanel>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsPanel } from "@/components/ui/settings-panel";
 import { createJmapApiKey } from "./utils";
 import { buildSignInQrPayload } from "./sign-in-qr-utils";
 
@@ -73,10 +74,18 @@ export function EmailClientsSettings() {
 	}
 
 	return (
-		<div className="space-y-4">
-			<p className="text-sm text-neutral-500">
-				{t("emailClients.description")}
-			</p>
+		<SettingsPanel
+			title={t("emailClients.create")}
+			description={t("emailClients.description")}
+			onSubmit={key ? undefined : submit}
+			status={error && <span role="alert" className="text-red-600">{error}</span>}
+			action={!key && (
+				<Button type="submit" disabled={busy || isLoading || !mailboxIds.length || mailboxIds.length > MAX_KEY_MAILBOXES}>
+					<KeyRound className="h-4 w-4" />
+					{busy ? t("emailClients.creating") : t("emailClients.create")}
+				</Button>
+			)}
+		>
 			{key ? (
 				<div className="space-y-3 rounded-2xl bg-neutral-50 p-4">
 					<Field label={t("emailClients.server")} value={server} onCopy={copy} copied={copied} />
@@ -86,7 +95,7 @@ export function EmailClientsSettings() {
 						<div className="flex flex-col items-center gap-2 rounded-xl bg-white p-4">
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img src={qr} alt={t("emailClients.qrAlt")} width={240} height={240} />
-							<p className="text-center text-xs text-neutral-500">{t("emailClients.qrHint")}</p>
+							<p className="max-w-prose text-center text-xs text-neutral-500">{t("emailClients.qrHint")}</p>
 						</div>
 					)}
 					<p className="text-xs text-neutral-500">
@@ -94,16 +103,10 @@ export function EmailClientsSettings() {
 					</p>
 				</div>
 			) : (
-				<form onSubmit={submit} className="space-y-4">
-					<div className="flex flex-wrap items-end gap-3">
-						<div className="min-w-56 flex-1 space-y-2">
-							<Label htmlFor="jmap-key-name">{t("emailClients.deviceName")}</Label>
-							<Input id="jmap-key-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t("emailClients.devicePlaceholder")} />
-						</div>
-						<Button type="submit" disabled={busy || isLoading || !mailboxIds.length || mailboxIds.length > MAX_KEY_MAILBOXES}>
-							<KeyRound className="h-4 w-4" />
-							{busy ? t("emailClients.creating") : t("emailClients.create")}
-						</Button>
+				<>
+					<div className="space-y-2">
+						<Label htmlFor="jmap-key-name">{t("emailClients.deviceName")}</Label>
+						<Input id="jmap-key-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t("emailClients.devicePlaceholder")} className="sm:max-w-md" />
 					</div>
 					<fieldset className="space-y-2">
 						<legend className="text-sm font-medium">{t("emailClients.mailboxesLegend")}</legend>
@@ -112,31 +115,32 @@ export function EmailClientsSettings() {
 						) : mailboxes.length === 0 ? (
 							<p className="text-sm text-neutral-500">{t("apiKeys.noMailboxes")}</p>
 						) : (
-							mailboxes.map((mailbox) => (
-								<label key={mailbox.id} className="flex items-center gap-3 text-sm">
-									<Checkbox
-										checked={mailboxIds.includes(mailbox.id)}
-										onChange={(event) => setChosenMailboxIds(event.target.checked ? [...mailboxIds, mailbox.id] : mailboxIds.filter((id) => id !== mailbox.id))}
-									/>
-									{mailbox.localPart}@{mailbox.hostname}
-								</label>
-							))
+							<div className="grid gap-2 sm:grid-cols-2">
+								{mailboxes.map((mailbox) => (
+									<label key={mailbox.id} className="flex min-w-0 items-center gap-3 text-sm">
+										<Checkbox
+											checked={mailboxIds.includes(mailbox.id)}
+											onChange={(event) => setChosenMailboxIds(event.target.checked ? [...mailboxIds, mailbox.id] : mailboxIds.filter((id) => id !== mailbox.id))}
+										/>
+										<span className="min-w-0 break-all">{mailbox.localPart}@{mailbox.hostname}</span>
+									</label>
+								))}
+							</div>
 						)}
 						<p className="text-xs text-neutral-500">{t("emailClients.aliasLimit", { max: MAX_KEY_MAILBOXES })}</p>
 					</fieldset>
-					{error && <p role="alert" className="w-full text-sm text-red-600">{error}</p>}
-				</form>
+				</>
 			)}
-		</div>
+		</SettingsPanel>
 	);
 }
 
 function Field({ label, value, onCopy, copied, mono }: { label: string; value: string; onCopy: (label: string, value: string) => void; copied: string | null; mono?: boolean }) {
 	const { t } = useLanguage();
 	return (
-		<div className="flex items-center gap-3">
-			<span className="w-36 shrink-0 text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</span>
-			<code className={`min-w-0 flex-1 truncate rounded-md bg-white px-2 py-1 text-sm ${mono ? "font-mono" : "font-sans"}`}>{value}</code>
+		<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+			<span className="w-full shrink-0 text-xs sm:w-36 font-medium uppercase tracking-wide text-neutral-500">{label}</span>
+			<code className={`min-w-0 flex-1 basis-40 truncate rounded-md bg-white px-2 py-1 text-sm ${mono ? "font-mono" : "font-sans"}`}>{value}</code>
 			<Button type="button" variant="ghost" size="sm" onClick={() => onCopy(label, value)} aria-label={t("common.copyLabel", { label })}>
 				<Copy className="h-4 w-4" />
 				{copied === label ? t("common.copied") : t("common.copy")}

@@ -11,25 +11,27 @@ export function InboxThreadingSettings() {
 	const [latestMessagesFirst, setLatestMessagesFirst] = useLatestMessagesFirst();
 
 	return (
-		<div className="space-y-3">
-			<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
-				<span className="flex-1">
-					<span className="block text-sm font-medium text-neutral-900">{t("settings.threading.groupTitle")}</span>
-					<span className="mt-1 block text-sm text-neutral-500">
-						{t("settings.threading.groupDescription")}
+		<div className="@container">
+		<div className="grid gap-3 @xl:grid-cols-2">
+				<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+					<span className="flex-1">
+						<span className="block text-sm font-medium text-neutral-900">{t("settings.threading.groupTitle")}</span>
+						<span className="mt-1 block text-sm text-neutral-500">
+							{t("settings.threading.groupDescription")}
+						</span>
 					</span>
-				</span>
-				<Switch checked={conversationView} onCheckedChange={setConversationView} />
-			</label>
-			<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
-				<span className="flex-1">
-					<span className="block text-sm font-medium text-neutral-900">{t("settings.threading.latestTitle")}</span>
-					<span className="mt-1 block text-sm text-neutral-500">
-						{t("settings.threading.latestDescription")}
+					<Switch checked={conversationView} onCheckedChange={setConversationView} />
+				</label>
+				<label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+					<span className="flex-1">
+						<span className="block text-sm font-medium text-neutral-900">{t("settings.threading.latestTitle")}</span>
+						<span className="mt-1 block text-sm text-neutral-500">
+							{t("settings.threading.latestDescription")}
+						</span>
 					</span>
-				</span>
-				<Switch checked={latestMessagesFirst} onCheckedChange={setLatestMessagesFirst} />
-			</label>
+					<Switch checked={latestMessagesFirst} onCheckedChange={setLatestMessagesFirst} />
+				</label>
+			</div>
 		</div>
 	);
 }

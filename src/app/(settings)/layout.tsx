@@ -11,7 +11,7 @@ import { MailSearchProvider } from "@/components/mail-search/mail-search-context
 import { MailboxProvider } from "@/components/mailbox-provider";
 import { MailboxSelector } from "@/components/mailbox-selector";
 import { ModeSwitch } from "@/components/mode-switch";
-import { DashboardNav } from "@/components/dashboard-nav";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { SidebarProvider } from "@/components/sidebar-state";
 import { ShortcutsProvider } from "@/components/shortcuts";
 import { CommandPaletteButton } from "@/components/command-palette";
@@ -34,7 +34,7 @@ export default function DashboardLayout({
                 <div className="grid h-[100dvh] grid-cols-[minmax(0,1fr)] md:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc] transition-[grid-template-columns]" style={{ transitionDuration: "var(--sidebar-transition-duration)" }}>
                   <SkipToContent />
                   <SidebarAside>
-                    <DashboardNav />
+                    <SettingsNav />
                   </SidebarAside>
                   <div className="flex min-h-0 min-w-0 flex-col">
                     <header className="flex h-16 w-full shrink-0 items-center gap-4 pr-4 text-sm">
