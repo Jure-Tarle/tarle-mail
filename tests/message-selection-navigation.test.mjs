@@ -106,6 +106,9 @@ export function useConversationView() { return [true, () => {}]; }
 	["@/components/messages/use-two-column-reading", `
 export function useTwoColumnReading() { return [true, () => {}]; }
 `],
+	["@/components/compose/compose-context", `
+export function useCompose() { return { expanded: false }; }
+`],
 	["@/components/follow-ups/due-follow-ups", `
 export function DueFollowUps() { return null; }
 `],

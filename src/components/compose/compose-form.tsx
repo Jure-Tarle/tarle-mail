@@ -21,6 +21,7 @@ import type { ReviewSnapshot } from "@/components/agent/send-review-types";
 import { useIsMobile } from "@/components/sidebar-mobile-utils";
 import { useSheetViewport } from "./use-sheet-viewport";
 import { useTrackOpens } from "./use-track-opens";
+import { useComposeDock } from "./use-compose-dock";
 import { FollowUpMenu } from "@/components/follow-ups/follow-up-menu";
 import { followUpOptionKey } from "@/components/follow-ups/follow-up-client-utils";
 import { formatScheduledSendTime } from "@/components/messages/scheduled-send-utils";
@@ -59,7 +60,7 @@ export function ComposeForm({
 }) {
 	const { t } = useLanguage();
 	const router = useRouter();
-	const { showNotice, openDraftComposer, isCurrentNotice } = useCompose();
+	const { showNotice, openDraftComposer, isCurrentNotice, setExpanded } = useCompose();
 	const { selectedMailbox, setSelectedMailbox, mailboxes } = useSelectedMailbox();
 	const [draftId, setDraftId] = useState<string | null>(null);
 	const [agentRevision, setAgentRevision] = useState<number | null>(null);
@@ -94,6 +95,15 @@ export function ComposeForm({
 	const [selectedFrom, setSelectedFrom] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
 	useSheetViewport(formRef, mode === "popup");
+	// A maximized popup asks the mail layout for a pane beside the list and docks into it; pages
+	// without such a pane (or a narrow window) keep the centred modal.
+	const maximized = mode === "popup" && modalMode && !minimized;
+	useEffect(() => {
+		if (mode !== "popup") return;
+		setExpanded(maximized);
+	}, [mode, maximized, setExpanded]);
+	const dock = useComposeDock(maximized);
+	const docked = maximized && !!dock;
 	const isPhone = useIsMobile();
 	const phoneSheet = mode === "popup" && isPhone;
 	const [closing, setClosing] = useState(false);
@@ -780,6 +790,8 @@ export function ComposeForm({
 		mode === "popup"
 			? minimized
 				? cn("fixed bottom-0 right-8 z-40 flex h-9 w-[min(260px,calc(100vw-32px))] flex-col overflow-hidden rounded-t-lg border border-neutral-200 bg-white shadow-2xl", sheetClass)
+				: docked
+				? cn("fixed z-40 flex flex-col overflow-hidden bg-white", sheetClass)
 				: modalMode
 				? cn("fixed left-1/2 top-1/2 z-50 flex h-[86vh] w-[min(860px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg bg-white shadow-2xl", sheetClass)
 				: cn("fixed bottom-0 right-8 z-40 flex h-[min(520px,calc(100vh-88px))] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-t-lg border border-neutral-200 bg-white shadow-2xl", sheetClass)
@@ -788,7 +800,7 @@ export function ComposeForm({
 	return (
 		<>
 			{agentReview && <SendReview approvalId={agentReview.approvalId} snapshot={agentReview.snapshot} onClose={() => { reviewInProgressRef.current = false; setAgentReview(null); }} onSent={() => { reviewInProgressRef.current = false; setAgentReview(null); if (onClose) dismiss(); else router.push("/sent"); }} />}
-			{mode === "popup" && modalMode && !minimized && <div className="fixed inset-0 z-40 bg-black/65 dark:bg-black/75" aria-hidden="true" />}
+			{mode === "popup" && modalMode && !minimized && !docked && <div className="fixed inset-0 z-40 bg-black/65 dark:bg-black/75" aria-hidden="true" />}
 			{toast && (
 				<div
 					role={toast.type === "error" ? "alert" : "status"}
@@ -800,7 +812,7 @@ export function ComposeForm({
 					{toast.message}
 				</div>
 			)}
-			<form onSubmit={onSubmit} className={cn(frameClass, closing && "compose-sheet-closing")} style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined} ref={formRef} role={modalMode && !minimized ? "dialog" : mode === "popup" ? "region" : undefined} aria-modal={modalMode && !minimized || undefined} aria-label={mode === "popup" ? t("compose.dialogLabel") : undefined} onKeyDown={(event) => { if (modalMode && !minimized && event.key === "Escape") { event.preventDefault(); setModalMode(false); } }} onDragEnterCapture={minimized ? undefined : onFileDragEnter} onDragOverCapture={minimized ? undefined : onFileDragOver} onDragLeaveCapture={minimized ? undefined : onFileDragLeave} onDropCapture={minimized ? undefined : onFileDrop}>
+			<form onSubmit={onSubmit} className={cn(frameClass, closing && "compose-sheet-closing")} style={docked && dock ? { top: dock.top, left: dock.left, width: dock.width, height: dock.height } : dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined} ref={formRef} role={modalMode && !minimized && !docked ? "dialog" : mode === "popup" ? "region" : undefined} aria-modal={modalMode && !minimized && !docked || undefined} aria-label={mode === "popup" ? t("compose.dialogLabel") : undefined} onKeyDown={(event) => { if (modalMode && !minimized && event.key === "Escape") { event.preventDefault(); setModalMode(false); } }} onDragEnterCapture={minimized ? undefined : onFileDragEnter} onDragOverCapture={minimized ? undefined : onFileDragOver} onDragLeaveCapture={minimized ? undefined : onFileDragLeave} onDropCapture={minimized ? undefined : onFileDrop}>
 				{draggingFiles && !minimized && (
 					<div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center border-2 border-dashed border-blue-400 bg-blue-50/90 text-sm font-medium text-blue-700" aria-hidden="true">
 						{t("compose.dropFiles")}

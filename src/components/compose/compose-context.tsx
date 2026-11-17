@@ -33,6 +33,9 @@ type ComposeContextValue = {
 	openComposer: (options?: { to?: string[] }) => void;
 	openDraftComposer: (draftId: string) => void;
 	closeComposer: () => void;
+	/** The popup composer is maximized; the mail layout then shows the list beside a pane the composer docks into. */
+	expanded: boolean;
+	setExpanded: (expanded: boolean) => void;
 	notice: ComposeNotice | null;
 	/** Shows a toast and returns its id; `actions` adds buttons, `durationMs` overrides the default 3.2s. */
 	showNotice: (message: string | null, options?: ComposeNoticeOptions) => number | null;
@@ -64,6 +67,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const [draftId, setDraftId] = useState<string | null>(null);
 	const [initialTo, setInitialTo] = useState<string[] | null>(null);
+	const [expanded, setExpanded] = useState(false);
 	const opener = useRef<HTMLElement | null>(null);
 
 	function rememberOpener() {
@@ -102,12 +106,15 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
 				},
 				closeComposer: () => {
 					setOpen(false);
+					setExpanded(false);
 					setDraftId(null);
 					setInitialTo(null);
 					const previous = opener.current;
 					opener.current = null;
 					if (previous) requestAnimationFrame(() => { if (previous.isConnected) previous.focus(); });
 				},
+				expanded: open && expanded,
+				setExpanded,
 				notice,
 				showNotice: (message, options) => {
 					const id = ++noticeId.current;

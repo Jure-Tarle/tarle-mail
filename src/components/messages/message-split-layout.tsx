@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { useSidebar } from "@/components/sidebar-state";
 import { useAssistantOpen } from "@/components/agent/assistant-open-state";
+import { useCompose } from "@/components/compose/compose-context";
 import { useMailSearch } from "@/components/mail-search/mail-search-context";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { useIsDesktop } from "@/components/sidebar-mobile-utils";
@@ -43,7 +44,11 @@ export function MessageSplitLayout({
 	const { userId, setForcedMinimal } = useSidebar();
 	const isDesktop = useIsDesktop();
 	const assistantOpen = useAssistantOpen();
-	const listVisible = twoColumnReading && !assistantOpen && manualListVisible;
+	// A maximized composer docks beside the list (Outlook style), whatever the reading layout is.
+	const { expanded: composeExpanded } = useCompose();
+	const composeDocked = composeExpanded && isDesktop;
+	const splitColumns = twoColumnReading || composeDocked;
+	const listVisible = splitColumns && (composeDocked || (!assistantOpen && manualListVisible));
 	const detailPrefix = `${config.hrefPrefix}/`;
 	const selectedMessageId = pathname.startsWith(detailPrefix)
 		? pathname.slice(detailPrefix.length).split("/")[0]
@@ -98,7 +103,7 @@ export function MessageSplitLayout({
 	}, [userId]);
 
 	useLayoutEffect(() => {
-		if (!selectedMessageId) {
+		if (!selectedMessageId && !composeDocked) {
 			setForcedMinimal(false);
 			return;
 		}
@@ -108,11 +113,11 @@ export function MessageSplitLayout({
 		const observer = new ResizeObserver(() => setContainerWidth(container.clientWidth));
 		observer.observe(container);
 		return () => observer.disconnect();
-	}, [selectedMessageId, setForcedMinimal]);
+	}, [selectedMessageId, composeDocked, setForcedMinimal]);
 
 	useEffect(() => () => setForcedMinimal(false), [setForcedMinimal]);
 
-	if (!selectedMessageId) {
+	if (!selectedMessageId && !composeDocked) {
 		return (
 			<MessageListStateContext.Provider value={listState}>
 				{children}
@@ -122,8 +127,8 @@ export function MessageSplitLayout({
 
 	return (
 		<MessageListStateContext.Provider value={listState}>
-			<div ref={containerRef} className="h-full min-h-0 overflow-hidden lg:grid lg:transition-[grid-template-columns] lg:ease-in-out motion-reduce:transition-none" style={{ gridTemplateColumns: twoColumnReading ? `${listVisible ? renderedListWidth : 0}px minmax(0,1fr)` : "minmax(0,1fr)", transitionDuration: widthReady ? "300ms" : "0ms" }}>
-				{twoColumnReading && (
+			<div ref={containerRef} className="h-full min-h-0 overflow-hidden lg:grid lg:transition-[grid-template-columns] lg:ease-in-out motion-reduce:transition-none" style={{ gridTemplateColumns: splitColumns ? `${listVisible ? renderedListWidth : 0}px minmax(0,1fr)` : "minmax(0,1fr)", transitionDuration: widthReady ? "300ms" : "0ms" }}>
+				{splitColumns && (
 				<aside className={`relative hidden min-h-0 min-w-0 overflow-hidden bg-white lg:block ${listVisible ? "border-r border-neutral-200" : "pointer-events-none"}`} aria-hidden={!listVisible} inert={!listVisible}>
 					<div className={`h-full overflow-hidden transition-transform duration-300 ease-in-out motion-reduce:transition-none ${listVisible ? "translate-x-0" : "-translate-x-full"}`} style={{ width: renderedListWidth }}>
 					<MessageFolderPage
@@ -155,7 +160,7 @@ export function MessageSplitLayout({
 							onClearSelection={() => setSelectedMessages([])}
 						/>
 					)}
-					{children}
+					{composeDocked ? <div data-compose-dock className="min-h-0 flex-1" aria-hidden="true" /> : children}
 				</section>
 				</MessageDetailNavigationProvider>
 				</MessageListVisibilityContext.Provider>
