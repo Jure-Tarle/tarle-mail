@@ -35,9 +35,3 @@ export function getMailboxColors(mailboxes: Pick<MailboxOption, "id" | "color">[
 	}
 	return colors;
 }
-
-/** The shortest label that still tells mailboxes apart: the local part when they share one domain. */
-export function getMailboxShortLabels(mailboxes: Pick<MailboxOption, "id" | "localPart" | "hostname">[]): Map<string, string> {
-	const oneDomain = new Set(mailboxes.map((mailbox) => mailbox.hostname)).size <= 1;
-	return new Map(mailboxes.map((mailbox) => [mailbox.id, oneDomain ? mailbox.localPart : `${mailbox.localPart}@${mailbox.hostname}`]));
-}

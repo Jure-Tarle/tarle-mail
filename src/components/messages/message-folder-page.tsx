@@ -51,7 +51,7 @@ import {
 	PartialDeleteError,
 	supportsPermanentDelete,
 } from "@/lib/messages/permanent-delete-utils";
-import { getMailboxColors, getMailboxShortLabels } from "@/components/mailbox-colors";
+import { getMailboxColors } from "@/components/mailbox-colors";
 import clsx from "clsx";
 import { DueFollowUps } from "@/components/follow-ups/due-follow-ups";
 import { MailboxStorageBanner } from "./mailbox-storage-banner";
@@ -208,8 +208,7 @@ function MessageListRowComponent({
 							)}
 							<NoteBadge count={message.noteCount} className="ml-2" />
 						</span>
-						<span className={clsx(unread ?"font-medium":"text-neutral-500","flex shrink-0 items-baseline gap-2 text-[11px]")}>
-							{mailboxTag && <MailboxTag tag={mailboxTag} />}
+						<span className={clsx(unread ?"font-medium":"text-neutral-500","shrink-0 text-[11px]")}>
 							<OpenedIndicator count={message.openCount} />
 							{message.scheduledAt ? formatScheduledSendTime(message.scheduledAt, t) : formatMessageListTimestamp(message.createdAt, todayKey)}
 						</span>
@@ -221,6 +220,13 @@ function MessageListRowComponent({
 						{message.subject ?? t("list.noSubject")}
 					</span>
 					<span className="mt-0.5 block truncate text-xs leading-5 text-neutral-500">
+						{/* In the narrow list the mailbox leads the preview line, so the sender keeps its room. */}
+						{mailboxTag && (
+							<span title={mailboxTag.address} className="mr-2 inline-flex items-center gap-1.5 align-[-1px]">
+								<span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: mailboxTag.color }} />
+								<span className="font-medium text-neutral-600">{mailboxTag.label}</span>
+							</span>
+						)}
 						{preview}
 					</span>
 				</Link>
@@ -249,7 +255,7 @@ function MessageListRowComponent({
 	}
 
 	const className =
-		`group relative grid min-h-12 w-full ${mailboxTag ? "grid-cols-[24px_32px_minmax(160px,80px)_8.5rem_1fr_auto]" : "grid-cols-[24px_32px_minmax(160px,80px)_1fr_auto]"} items-center gap-3 px-6 text-left text-sm hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset has-[a:focus-visible]:ring-blue-600 ${active || selected || opening ? "bg-blue-50" : ""
+		`group relative grid min-h-12 w-full ${mailboxTag ? "grid-cols-[24px_32px_minmax(160px,80px)_12.5rem_1fr_auto]" : "grid-cols-[24px_32px_minmax(160px,80px)_1fr_auto]"} items-center gap-3 px-6 text-left text-sm hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset has-[a:focus-visible]:ring-blue-600 ${active || selected || opening ? "bg-blue-50" : ""
 		} ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`;
 	const content = (
 		<>
@@ -361,7 +367,7 @@ const MessageListRow = memo(MessageListRowComponent);
 /** Which mailbox a row arrived in, while the list combines all mailboxes: its colour dot and short name. */
 function MailboxTag({ tag }: { tag: { label: string; address: string; color: string } }) {
 	return (
-		<span title={tag.address} className="flex min-w-0 items-center gap-1.5 text-xs font-normal text-neutral-500">
+		<span title={tag.address} className="flex min-w-0 max-w-[12.5rem] items-center gap-1.5 text-xs font-normal text-neutral-500">
 			<span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
 			<span className="truncate">{tag.label}</span>
 		</span>
@@ -420,8 +426,11 @@ export function MessageFolderPage({
 	const { counts } = useMessageCounts(listMailboxId, !mailboxesLoading);
 	const mailboxTags = useMemo(() => {
 		const colors = getMailboxColors(mailboxes);
-		const labels = getMailboxShortLabels(mailboxes);
-		return new Map(mailboxes.map((mailbox) => [mailbox.id, { label: labels.get(mailbox.id) ?? mailbox.localPart, address: `${mailbox.localPart}@${mailbox.hostname}`, color: colors.get(mailbox.id) ?? "#64748b" }]));
+		// The full address, so mailboxes on different domains never look alike.
+		return new Map(mailboxes.map((mailbox) => {
+			const address = `${mailbox.localPart}@${mailbox.hostname}`;
+			return [mailbox.id, { label: address, address, color: colors.get(mailbox.id) ?? "#64748b" }];
+		}));
 	}, [mailboxes]);
 	usePageLoading(mailboxesLoading || isLoading, true);
 	const headerIcons = config.headerIcons ?? [];
