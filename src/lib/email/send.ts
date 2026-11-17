@@ -6,7 +6,7 @@ import { buildSnippet } from "@/lib/email/parse";
 import { dispatchWebhooks } from "@/lib/email/webhooks";
 import { upsertContactsFromAddresses } from "@/lib/contacts/service";
 import { getAuthorizedSenderAddress } from "@/lib/email/sender";
-import { getEmailAddressList, joinEmailAddressList, splitEmailAddressList } from "@/lib/email/address";
+import { getEmailAddress, getEmailAddressList, joinEmailAddressList, splitEmailAddressList } from "@/lib/email/address";
 import { formatMessageIdHeader, normalizeMessageId, parseMessageIdList } from "@/lib/email/threading";
 import { createAuditLog } from "@/lib/mailboxes/audit";
 import { loadMessageAttachmentContents, storeMessageAttachments, validateAttachments } from "@/lib/email/attachments";
@@ -19,6 +19,8 @@ import { ensureTrackingToken, getTrackingHostForSender } from "@/lib/tracking/op
 import { setFollowUp } from "@/lib/follow-ups/service";
 import { buildTrackingPixelUrl, injectTrackingPixel, resolveTrackingOrigin } from "@/lib/tracking/open-tracking-utils";
 import { getComposePreferences } from "@/lib/compose/preferences";
+import { estimateMessageSize } from "@/lib/mailboxes/storage-limits";
+import { assertDailySendAllowed } from "@/lib/mailboxes/storage-usage";
 
 export type SendEmailInput = {
 	userId: string;
@@ -103,6 +105,7 @@ export async function sendEmail(
 	if (to.length + cc.length + bcc.length > MAX_RECIPIENTS) {
 		throw new Error(`A message can have at most ${MAX_RECIPIENTS} recipients`);
 	}
+	await assertDailySendAllowed(env, sender.mailboxId, getEmailAddress(sender.fromAddr));
 	await upsertContactsFromAddresses(env, input.userId, [...to, ...cc, ...bcc], "outbound");
 
 	const inReplyTo = normalizeMessageId(input.inReplyTo);
@@ -140,6 +143,7 @@ export async function sendEmail(
 		snippet,
 		textBody: input.text ?? null,
 		htmlBody: input.html ?? null,
+		sizeBytes: estimateMessageSize({ subject: input.subject, text: input.text, html: input.html, attachmentBytes: attachments.reduce((total, attachment) => total + attachment.content.byteLength, 0) }),
 		status: "queued",
 		read: true,
 		threadId: input.threadId ?? null,

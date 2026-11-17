@@ -21,7 +21,8 @@ export type AuditAction =
 	| "email.read"
 	| "email.delete"
 	| "permission.change"
-	| "mailbox.access";
+	| "mailbox.access"
+	| "mailbox.full";
 
 export type AuditLogInput = {
 	actorUserId?: string | null;

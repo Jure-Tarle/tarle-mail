@@ -38,6 +38,8 @@ import { runJmapChangeRetention } from "./src/lib/jmap/changes";
 import { runFollowUpReminders } from "./src/lib/follow-ups/service";
 import { runCalendarReminders } from "./src/lib/calendar/reminders";
 import { enforceCloudflareAccess } from "./src/lib/security/access-jwt";
+import { MAILBOX_FULL_REJECTION } from "./src/lib/mailboxes/storage-limits";
+import { backfillMessageSizes, isMailboxFull, recordMailboxFullRejection } from "./src/lib/mailboxes/storage-usage";
 export { RealtimeHub } from "./src/lib/realtime/hub";
 
 export default {
@@ -99,18 +101,26 @@ export default {
 				return;
 			}
 
+			let forwardedAway = false;
 			if (decision?.action === "forward" && decision.forwardTo) {
 				const forwarded = await forwardMessage(env, message, decision.forwardTo);
 				// A forward rule drops the message unless it was explicitly asked to keep a copy.
 				// If the forward itself failed we still store it, so mail is never silently lost.
 				if (forwarded && !decision.keepCopy) return;
+				forwardedAway = forwarded;
 			}
 
 			if (!alreadyForwarded) {
 				const forwardingDestination = await getAccountForwardingDestination(env, message.to);
 				if (forwardingDestination) {
-					await forwardMessage(env, message, forwardingDestination);
+					forwardedAway = (await forwardMessage(env, message, forwardingDestination)) || forwardedAway;
 				}
+			}
+			// A full mailbox refuses new mail, unless a copy already went elsewhere, which a bounce would contradict.
+			if (decision?.mailbox && await isMailboxFull(env, decision.mailbox.mailboxId)) {
+				await recordMailboxFullRejection(env, decision.mailbox, { from: message.from, to: message.to });
+				if (!forwardedAway) message.setReject(MAILBOX_FULL_REJECTION);
+				return;
 			}
 			const rawR2Key = await storeRawToR2(env, message.from, message.to, raw);
 			const payload: InboundQueueMessage = {
@@ -165,6 +175,7 @@ export default {
 		ctx.waitUntil(runFollowUpReminders(env, new Date(controller.scheduledTime)));
 		ctx.waitUntil(runCalendarReminders(env, new Date(controller.scheduledTime)));
 		ctx.waitUntil(sweepImportJobs(env, new Date(controller.scheduledTime)));
+		ctx.waitUntil(backfillMessageSizes(env).catch((error) => console.error("Message size backfill failed", error)));
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runAccountRetention(env, new Date(controller.scheduledTime)));
 		// Drive trash is emptied once a day, with the 02:00 UTC cron; the 5-minute cron is for queue-like upkeep.
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runDriveTrashRetention(env, new Date(controller.scheduledTime)));
