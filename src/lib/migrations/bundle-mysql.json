@@ -349,6 +349,17 @@
         "ALTER TABLE `domains` ADD `sending_fallback` longtext DEFAULT ('[]') NOT NULL;",
         "ALTER TABLE `outbound_jobs` ADD `provider` longtext;"
       ]
+    },
+    {
+      "name": "0013_mailbox_limits.sql",
+      "statements": [
+        "ALTER TABLE `messages` ADD `size_bytes` bigint;",
+        "CREATE INDEX `messages_size_bytes_idx` ON `messages` (`size_bytes`);",
+        "ALTER TABLE `mailboxes` ADD `storage_limit_bytes` bigint;",
+        "ALTER TABLE `mailboxes` ADD `daily_send_limit` bigint;",
+        "ALTER TABLE `app_settings` ADD `default_mailbox_storage_limit_bytes` bigint;",
+        "ALTER TABLE `app_settings` ADD `default_mailbox_daily_send_limit` bigint;"
+      ]
     }
   ]
 }

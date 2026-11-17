@@ -2,6 +2,8 @@ import { forwardedMarker, getAccountForwardingDestination, isForwardedMarkerVali
 import { resolveIncomingMail } from "@/lib/email/incoming";
 import { inboundStorageKey } from "@/lib/email/inbound-id";
 import type { InboundQueueMessage } from "@/lib/email/inbound";
+import { isMailboxFull, recordMailboxFullRejection } from "@/lib/mailboxes/storage-usage";
+import { MAILBOX_FULL_REJECTION } from "@/lib/mailboxes/storage-limits";
 import type { IntakeActions, IntakeInput, IntakeResult } from "@/lib/email/intake-types";
 
 /**
@@ -33,7 +35,15 @@ export async function intakeIncomingMail(env: CloudflareEnv, input: IntakeInput,
 
 	if (!alreadyForwarded) {
 		const destination = await getAccountForwardingDestination(env, input.to);
-		if (destination) await actions.forward?.(destination, marker);
+		if (destination && await actions.forward?.(destination, marker)) forwardedTo ??= destination;
+	}
+
+	// A full mailbox refuses the message unless a copy already went elsewhere, which an SMTP reject would bounce.
+	if (decision?.mailbox && await isMailboxFull(env, decision.mailbox.mailboxId)) {
+		await recordMailboxFullRejection(env, decision.mailbox, { from: input.from, to: input.to });
+		if (forwardedTo) return { action: "forward", forwardedTo };
+		await actions.reject?.(MAILBOX_FULL_REJECTION);
+		return { action: "reject", reason: MAILBOX_FULL_REJECTION };
 	}
 
 	// A relay retry replays the same bytes, so key the object on a content hash

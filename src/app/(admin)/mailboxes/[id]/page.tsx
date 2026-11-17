@@ -34,6 +34,7 @@ import {
 } from "./utils";
 import { getMailboxesBase } from "../utils";
 import MailboxAvatarForm from "./MailboxAvatarForm";
+import MailboxStorageCard from "./MailboxStorageCard";
 
 export default function MailboxSettingsPage() {
   const { t } = useLanguage();
@@ -211,6 +212,8 @@ export default function MailboxSettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {mailbox.data && <MailboxStorageCard mailboxId={mailbox.data.id} />}
 
       <Card className="rounded-3xl border-0 bg-white p-6">
         <CardHeader className="py-0">

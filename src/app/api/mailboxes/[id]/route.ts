@@ -10,7 +10,7 @@ import { isPrimaryMailbox, tracksAccountIdentity } from "@/lib/profile/identity-
 import { syncPersonalIdentity } from "@/lib/profile/sync";
 import { updateMailboxSchema } from "@/lib/validators";
 import type { MailboxRouteParams } from "./types";
-import { getMailboxUpdateValues, selectMailboxById } from "./utils";
+import { getMailboxLimitValues, getMailboxUpdateValues, mailboxLimitsSchema, selectMailboxById } from "./utils";
 
 export async function GET(request: Request, { params }: MailboxRouteParams) {
 	const { id } = await params;
@@ -45,10 +45,16 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 	const { id } = await params;
 	const env = getEnv();
 	const user = await requireUser(env, request);
-	const parsed = updateMailboxSchema.safeParse(await request.json());
+	const body = await request.json();
+	const parsed = updateMailboxSchema.safeParse(body);
+	const limits = mailboxLimitsSchema.safeParse(body);
 
-	if (!parsed.success) {
-		return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+	if (!parsed.success || !limits.success) {
+		return NextResponse.json({ error: (parsed.success ? limits : parsed).error!.flatten() }, { status: 400 });
+	}
+	const limitValues = getMailboxLimitValues(limits.data);
+	if (Object.keys(limitValues).length > 0 && user.role !== "admin") {
+		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 	}
 
 	const db = getDb(env);
@@ -59,7 +65,7 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 		return NextResponse.json({ error: "Mailbox not found" }, { status: 404 });
 	}
 
-	const updateValues = getMailboxUpdateValues(parsed.data);
+	const updateValues = { ...getMailboxUpdateValues(parsed.data), ...limitValues };
 	// Only the primary mailbox carries the account name; renaming any other
 	// mailbox writes to that mailbox alone.
 	if (tracksAccountIdentity(existing, existing.ownerEmail) && "displayName" in parsed.data) {

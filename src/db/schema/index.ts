@@ -126,6 +126,10 @@ export const mailboxes = sqliteTable(
 		type: text("type", { enum: ["personal", "shared"] }).notNull().default("personal"),
 		useAllDomains: bool("use_all_domains").notNull().default(true),
 		disabled: bool("disabled").notNull().default(false),
+		/** Storage cap in bytes for this mailbox; null falls back to the admin default (app_settings), which itself may be unlimited. */
+		storageLimitBytes: integer("storage_limit_bytes"),
+		/** Messages this mailbox may send per UTC day; null falls back to the admin default. */
+		dailySendLimit: integer("daily_send_limit"),
 		createdAt: timestamp("created_at")
 			.notNull()
 			.$defaultFn(() => new Date()),
@@ -327,6 +331,8 @@ export const messages = sqliteTable(
 		textBody: text("text_body"),
 		htmlBody: text("html_body"),
 		rawR2Key: text("raw_r2_key"),
+		/** Size of the raw MIME in bytes (attachments included); null until measured, counted as 0 against the mailbox storage limit. */
+		sizeBytes: integer("size_bytes"),
 		status: text("status").notNull().default("received"),
 		read: bool("read").notNull().default(false),
 		starred: bool("starred").notNull().default(false),
@@ -358,6 +364,7 @@ export const messages = sqliteTable(
 		index("messages_thread_idx").on(t.mailboxId, t.threadId),
 		index("messages_provider_message_idx").on(t.mailboxId, t.providerMessageId),
 		index("messages_raw_r2_key_idx").on(t.rawR2Key),
+		index("messages_size_bytes_idx").on(t.sizeBytes),
 		index("messages_trashed_at_idx").on(t.trashedAt),
 		index("messages_inbox_page_idx").on(
 			t.mailboxId,
@@ -1073,6 +1080,10 @@ export const appSettings = sqliteTable("app_settings", {
 	outboundAttachmentMaxMb: integer("outbound_attachment_max_mb").notNull().default(25),
 	/** Per-user Drive storage cap in bytes; null means unlimited. */
 	driveStorageLimitBytes: integer("drive_storage_limit_bytes"),
+	/** Default storage cap per mailbox in bytes; null means unlimited. A mailbox's own limit overrides it. */
+	defaultMailboxStorageLimitBytes: integer("default_mailbox_storage_limit_bytes"),
+	/** Default messages per UTC day per mailbox; null means unlimited. A mailbox's own limit overrides it. */
+	defaultMailboxDailySendLimit: integer("default_mailbox_daily_send_limit"),
 	resendApiKey: text("resend_api_key"),
 	/** JSON: AWS access key, secret and region (see src/lib/aws/config.ts). */
 	awsConfig: text("aws_config"),

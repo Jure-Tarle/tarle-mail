@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { domains, mailboxes, users } from "@/db/schema";
 import type { getDb } from "@/db";
+import { gigabytesToBytes } from "@/lib/mailboxes/storage-limits";
 import type { MailboxUpdateValues } from "./types";
 
 type Db = ReturnType<typeof getDb>;
@@ -42,5 +44,18 @@ export function getMailboxUpdateValues(input: MailboxUpdateValues): MailboxUpdat
 	if ("autoReplySubject" in input) values.autoReplySubject = input.autoReplySubject?.trim() || "Out of office";
 	if ("autoReplyBody" in input) values.autoReplyBody = input.autoReplyBody?.trim() || "";
 	if ("useAllDomains" in input) values.useAllDomains = input.useAllDomains;
+	return values;
+}
+
+/** Limits only administrators change: null follows the default from General settings, 0 is unlimited. */
+export const mailboxLimitsSchema = z.object({
+	storageLimitGb: z.number().min(0).max(1_000_000).nullable().optional(),
+	dailySendLimit: z.number().int().min(0).max(10_000_000).nullable().optional(),
+});
+
+export function getMailboxLimitValues(input: z.infer<typeof mailboxLimitsSchema>): Pick<MailboxUpdateValues, "storageLimitBytes" | "dailySendLimit"> {
+	const values: Pick<MailboxUpdateValues, "storageLimitBytes" | "dailySendLimit"> = {};
+	if (input.storageLimitGb !== undefined) values.storageLimitBytes = input.storageLimitGb === null ? null : gigabytesToBytes(input.storageLimitGb);
+	if (input.dailySendLimit !== undefined) values.dailySendLimit = input.dailySendLimit;
 	return values;
 }

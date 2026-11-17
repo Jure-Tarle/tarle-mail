@@ -374,6 +374,17 @@
         "ALTER TABLE \"domains\" ADD COLUMN \"sending_fallback\" text DEFAULT '[]' NOT NULL;",
         "ALTER TABLE \"outbound_jobs\" ADD COLUMN \"provider\" text;"
       ]
+    },
+    {
+      "name": "0013_mailbox_limits.sql",
+      "statements": [
+        "ALTER TABLE \"messages\" ADD COLUMN \"size_bytes\" bigint;",
+        "CREATE INDEX \"messages_size_bytes_idx\" ON \"messages\" USING btree (\"size_bytes\");",
+        "ALTER TABLE \"mailboxes\" ADD COLUMN \"storage_limit_bytes\" bigint;",
+        "ALTER TABLE \"mailboxes\" ADD COLUMN \"daily_send_limit\" bigint;",
+        "ALTER TABLE \"app_settings\" ADD COLUMN \"default_mailbox_storage_limit_bytes\" bigint;",
+        "ALTER TABLE \"app_settings\" ADD COLUMN \"default_mailbox_daily_send_limit\" bigint;"
+      ]
     }
   ]
 }

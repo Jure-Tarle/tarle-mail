@@ -92,6 +92,13 @@
       "when": 1793280383890,
       "tag": "0012_provider_fallback",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793280384890,
+      "tag": "0013_mailbox_limits",
+      "breakpoints": true
     }
   ]
 }

@@ -53,6 +53,7 @@ import {
 } from "@/lib/messages/permanent-delete-utils";
 import clsx from "clsx";
 import { DueFollowUps } from "@/components/follow-ups/due-follow-ups";
+import { MailboxStorageBanner } from "./mailbox-storage-banner";
 import { getUserTimeZone, zonedDateFields } from "@/lib/time/utils";
 
 const pageSize = 25;
@@ -678,6 +679,8 @@ export function MessageFolderPage({
 					{actionError}
 				</p>
 			)}
+
+			{!mailboxesLoading && <MailboxStorageBanner mailboxId={selectedMailbox?.id} />}
 
 			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-gutter-stable">
 				{config.folder === "inbox" && !config.folderId && offset === 0 && !mailboxesLoading && <DueFollowUps mailboxId={selectedMailbox?.id} />}

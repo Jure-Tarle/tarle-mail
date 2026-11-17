@@ -20,11 +20,15 @@ export default function GeneralSettingsPage() {
 	const [limitGb, setLimitGb] = useState(10);
 	const [driveSaving, setDriveSaving] = useState(false);
 	const [driveStatus, setDriveStatus] = useState("");
+	const [mailboxStorageGb, setMailboxStorageGb] = useState("");
+	const [mailboxDailySend, setMailboxDailySend] = useState("");
+	const [mailboxSaving, setMailboxSaving] = useState(false);
+	const [mailboxStatus, setMailboxStatus] = useState("");
 
 	useEffect(() => {
 		let active = true;
 		void loadGeneralSettings().then((settings) => {
-			if (active) { setMaxMb(settings.outboundAttachmentMaxMb); setUnlimited(settings.driveStorageLimitGb === null); if (settings.driveStorageLimitGb !== null) setLimitGb(settings.driveStorageLimitGb); setLoaded(true); }
+			if (active) { setMaxMb(settings.outboundAttachmentMaxMb); setUnlimited(settings.driveStorageLimitGb === null); if (settings.driveStorageLimitGb !== null) setLimitGb(settings.driveStorageLimitGb); setMailboxStorageGb(settings.defaultMailboxStorageLimitGb === null ? "" : String(settings.defaultMailboxStorageLimitGb)); setMailboxDailySend(settings.defaultMailboxDailySendLimit === null ? "" : String(settings.defaultMailboxDailySendLimit)); setLoaded(true); }
 		}).catch((error) => { if (active) setStatus(error instanceof Error ? error.message : t("general.loadFailed")); });
 		return () => { active = false; };
 	}, [t]);
@@ -56,6 +60,25 @@ export default function GeneralSettingsPage() {
 		} finally { setDriveSaving(false); }
 	}
 
+	// An empty field means unlimited (null).
+	const mailboxStorageValue = mailboxStorageGb.trim() === "" ? null : Number(mailboxStorageGb);
+	const mailboxDailyValue = mailboxDailySend.trim() === "" ? null : Number(mailboxDailySend);
+	const mailboxLimitsValid = (mailboxStorageValue === null || (Number.isFinite(mailboxStorageValue) && mailboxStorageValue > 0)) && (mailboxDailyValue === null || (Number.isInteger(mailboxDailyValue) && mailboxDailyValue > 0));
+
+	async function saveMailboxLimits(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setMailboxSaving(true);
+		setMailboxStatus("");
+		try {
+			const settings = await saveGeneralSettings({ defaultMailboxStorageLimitGb: mailboxStorageValue, defaultMailboxDailySendLimit: mailboxDailyValue });
+			setMailboxStorageGb(settings.defaultMailboxStorageLimitGb === null ? "" : String(settings.defaultMailboxStorageLimitGb));
+			setMailboxDailySend(settings.defaultMailboxDailySendLimit === null ? "" : String(settings.defaultMailboxDailySendLimit));
+			setMailboxStatus(t("general.mailboxLimitsSaved"));
+		} catch (error) {
+			setMailboxStatus(error instanceof Error ? error.message : t("general.saveFailed"));
+		} finally { setMailboxSaving(false); }
+	}
+
 	return <div className="space-y-6">
 		<div><h1 className="text-2xl md:text-3xl font-medium text-neutral-900">{t("general.title")}</h1><p className="mt-2 text-sm text-neutral-500">{t("general.description")}</p></div>
 		<Card className="rounded-3xl border-0 bg-white p-6">
@@ -75,6 +98,16 @@ export default function GeneralSettingsPage() {
 				<p className="text-sm text-neutral-500">{t("general.driveHint")}</p>
 				{driveStatus && <p role="status" className="text-sm text-neutral-700">{driveStatus}</p>}
 				<Button type="submit" disabled={!loaded || driveSaving || (!unlimited && !(limitGb > 0))}>{driveSaving ? t("common.saving") : t("general.save")}</Button>
+			</form></CardContent>
+		</Card>
+		<Card className="rounded-3xl border-0 bg-white p-6">
+			<CardHeader className="py-0"><CardTitle>{t("general.mailboxLimits")}</CardTitle></CardHeader>
+			<CardContent className="pt-6"><form onSubmit={saveMailboxLimits} className="space-y-4">
+				<div className="space-y-2"><Label htmlFor="mailbox-storage-limit">{t("general.mailboxStorageLimit")}</Label><Input id="mailbox-storage-limit" type="number" min="0.01" max="1000000" step="any" value={mailboxStorageGb} onChange={(event) => setMailboxStorageGb(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} className="max-w-40" /></div>
+				<div className="space-y-2"><Label htmlFor="mailbox-daily-limit">{t("general.mailboxDailyLimit")}</Label><Input id="mailbox-daily-limit" type="number" min="1" step="1" value={mailboxDailySend} onChange={(event) => setMailboxDailySend(event.target.value)} placeholder={t("general.mailboxUnlimited")} disabled={!loaded || mailboxSaving} className="max-w-40" /></div>
+				<p className="text-sm text-neutral-500">{t("general.mailboxLimitsHint")}</p>
+				{mailboxStatus && <p role="status" className="text-sm text-neutral-700">{mailboxStatus}</p>}
+				<Button type="submit" disabled={!loaded || mailboxSaving || !mailboxLimitsValid}>{mailboxSaving ? t("common.saving") : t("general.save")}</Button>
 			</form></CardContent>
 		</Card>
 		<ProviderLimitsCard />

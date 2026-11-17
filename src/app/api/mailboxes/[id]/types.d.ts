@@ -9,4 +9,6 @@ export type MailboxUpdateValues = {
 	autoReplySubject?: string;
 	autoReplyBody?: string;
 	useAllDomains?: boolean;
+	storageLimitBytes?: number | null;
+	dailySendLimit?: number | null;
 };
