@@ -28,6 +28,7 @@ import {
 } from "./utils";
 import { getMailboxesBase } from "../utils";
 import MailboxAvatarForm from "./MailboxAvatarForm";
+import MailboxOwnershipPanel from "./MailboxOwnershipPanel";
 import MailboxStorageCard from "./MailboxStorageCard";
 
 export default function MailboxSettingsPage() {
@@ -291,6 +292,7 @@ export default function MailboxSettingsPage() {
         )}
       </SettingsPanel>
 
+      {mailbox.data && <MailboxOwnershipPanel mailboxId={mailboxId} address={address} />}
       {mailbox.data?.canManageSharing && (
         <SettingsPanel title={t("mailbox.sharedAccess")} description={t("mailbox.sharedAccessDescription")}>
           {sharedAccess.isLoading && <Skeleton className="h-16 w-full rounded-2xl" />}
