@@ -50,7 +50,7 @@ export default function DashboardLayout({
                   </Link> */}
                       <MailboxSelector />
                     </header>
-                    <main id="main-content" tabIndex={-1} className="focus:outline-none page-flush min-h-0 flex-1 overflow-y-auto max-md:rounded-t-3xl max-md:bg-white overscroll-contain scrollbar-gutter-stable">
+                    <main id="main-content" tabIndex={-1} className="focus:outline-none page-flush min-h-0 flex-1 overflow-y-auto max-md:rounded-t-3xl max-md:bg-white overscroll-contain">
                       {children}
                     </main>
                   </div>

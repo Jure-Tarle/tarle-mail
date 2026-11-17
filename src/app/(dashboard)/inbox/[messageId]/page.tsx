@@ -306,7 +306,7 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
       <MessageDetailNavigation messageId={message.id} unread={message.direction === "inbound" && !message.read} />
     </div>
 
-    <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto overscroll-contain scrollbar-gutter-stable flex-1 min-h-0">
+    <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto overscroll-contain flex-1 min-h-0">
       <h1 className={clsx("sm:pl-[78px] px-4 pb-2 pt-2 text-2xl text-neutral-900 sm:pr-6")} title={message.subject ?? t("list.noSubject")}>
         {message.subject ?? t("list.noSubject")}
       </h1>

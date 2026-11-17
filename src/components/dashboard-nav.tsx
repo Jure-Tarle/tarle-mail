@@ -244,6 +244,8 @@ export function DashboardNav({ className }: { className?: string }) {
 
   return (
     <SidebarScaffold className={className} header={<SidebarHeader href="/inbox" />} footer={<SidebarFooter />}>
+      {/* Pick the mailbox first; compose and the folders below belong to that choice. */}
+      {!minimal && <MailboxesNavSection />}
       {composeLink && !mobile && <NavItem labelClassName="font-medium" link={composeLink} />}
       {minimal && <hr className="mx-6 my-2 border-neutral-200/70" />}
       <ReorderableList
@@ -260,7 +262,6 @@ export function DashboardNav({ className }: { className?: string }) {
         ]}
       />
       {minimal && <hr className="mx-6 my-2 border-neutral-200/70" />}
-      {!minimal && <MailboxesNavSection />}
       {!minimal && (
         <NavSectionHeader label={t("navigation.folders")} open={foldersSectionOpen} onToggle={toggleFoldersSection}>
           {selectedMailbox && (

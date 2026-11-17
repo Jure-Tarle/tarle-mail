@@ -118,7 +118,7 @@ export default function BookingsPage() {
 		<UpcomingSidebar />
 		<section className="min-h-0 min-w-0 flex-1 overflow-hidden overscroll-contain max-md:rounded-t-3xl max-md:bg-white">
 			<div className="flex h-full min-h-0 min-w-0">
-				<div className="min-w-0 flex-1 overflow-y-auto overscroll-contain scrollbar-gutter-stable">
+				<div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
 					<div className="mx-auto max-w-6xl px-5 md:px-8">
 						<section aria-label={t("booking.events")} className="space-y-1 pt-3 max-md:pb-24">
 

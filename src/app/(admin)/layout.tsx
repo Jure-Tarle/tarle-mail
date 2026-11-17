@@ -76,7 +76,7 @@ export default function DashboardLayout({
                 <CommandPaletteButton />
                 <MailboxSelector />
               </header>
-              <main id="main-content" tabIndex={-1} className={clsx("focus:outline-none page-flush min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl max-md:rounded-t-3xl max-md:bg-white max-md:pb-24 px-6 py-10 md:pt-[4.5rem] scrollbar-gutter-stable lg:px-12", mobileTitle && "max-md:[&_h1]:sr-only")}>
+              <main id="main-content" tabIndex={-1} className={clsx("focus:outline-none page-flush min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl max-md:rounded-t-3xl max-md:bg-white max-md:pb-24 px-6 py-10 md:pt-[4.5rem] lg:px-12", mobileTitle && "max-md:[&_h1]:sr-only")}>
                 <div className={clsx("w-full", pageWidths[pathname] ?? "max-w-3xl")}>{children}</div>
               </main>
             </div>

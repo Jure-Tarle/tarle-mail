@@ -48,7 +48,7 @@ export function BookingEditor({ form, open, editingId, username, hosts, canManag
 
 	return <aside aria-label={t("booking.editor.details")} aria-hidden={!open} inert={!open} onTransitionEnd={(event) => { if (event.target === event.currentTarget && event.propertyName === "width" && !open) onClosed(); }} className={clsx("relative z-10 h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out motion-reduce:transition-none", open ? "w-full sm:w-[392px]" : "w-0")}>
 		<div className={clsx("flex h-full w-[min(392px,100vw)] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl shadow-neutral-100 transition-transform duration-300 ease-in-out motion-reduce:transition-none", open ? "translate-x-0" : "translate-x-full")}>
-			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-gutter-stable">
+			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
 				<section className={sectionClass}>
 					<div className="flex items-center gap-3">
 						<button type="button" onClick={() => setActiveSection("event")} aria-label={t("booking.editor.editColor")} className="h-6 w-6 shrink-0 rounded-full" style={{ backgroundColor: form.color }} />

@@ -25,13 +25,6 @@ export type AccountAvatarProps = {
 	onAvatarError?: () => void;
 };
 
-export type MailboxAccountRowProps = {
-	mailbox: MailboxOption;
-	unread: number;
-	avatarUrl?: string;
-	onSelect: () => void;
-};
-
 export type AppsMenuProps = {
 	user: MailboxSelectorUser | null;
 };

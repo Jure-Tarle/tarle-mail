@@ -698,7 +698,7 @@ export function MessageFolderPage({
 
 			{!mailboxesLoading && <MailboxStorageBanner mailboxId={selectedMailbox?.id} />}
 
-			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-gutter-stable">
+			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
 				{config.folder === "inbox" && !config.folderId && offset === 0 && !mailboxesLoading && <DueFollowUps mailboxId={listMailboxId} />}
 				<div role="list" aria-label={title} className="divide-y divide-neutral-100">
 					{messages.map((message) => (
