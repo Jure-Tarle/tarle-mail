@@ -579,12 +579,14 @@ export const userComposePreferences = sqliteTable("user_compose_preferences", {
 });
 
 /**
- * The order a user wants their mailboxes in (switcher, settings), as a JSON array of mailbox ids.
- * Ids that no longer exist are skipped on read; mailboxes missing from it follow in their usual order.
+ * How a user arranges their mailboxes: the order (switcher, settings) as a JSON array of mailbox ids,
+ * and their own colours as a JSON object of mailbox id to "#rrggbb". Ids that no longer exist are
+ * skipped on read; mailboxes missing from the order follow in their usual order.
  */
 export const userMailboxOrder = sqliteTable("user_mailbox_order", {
 	userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
 	mailboxIds: text("mailbox_ids").notNull(),
+	mailboxColors: text("mailbox_colors"),
 	updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });
 

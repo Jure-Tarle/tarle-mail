@@ -22,3 +22,12 @@ test("a stored order that is not a list of strings counts as none", () => {
 	assert.deepEqual(parseMailboxOrder("not json"), []);
 	assert.deepEqual(parseMailboxOrder(null), []);
 });
+
+test("stored mailbox colours keep only ids mapped to lowercase #rrggbb", async () => {
+	const { parseMailboxColors, isMailboxColor } = await import("../src/lib/mailboxes/order-utils.ts");
+	assert.deepEqual(parseMailboxColors('{"a":"#2563eb","b":"red","c":"#ABCDEF","d":7}'), { a: "#2563eb" });
+	assert.deepEqual(parseMailboxColors("[]"), {});
+	assert.deepEqual(parseMailboxColors("nope"), {});
+	assert.equal(isMailboxColor("#00ff00"), true);
+	assert.equal(isMailboxColor("#00FF00"), false);
+});

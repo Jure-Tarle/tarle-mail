@@ -575,6 +575,13 @@
       "when": 1793366784889,
       "tag": "0090_user_mailbox_order",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "6",
+      "when": 1793453184889,
+      "tag": "0091_user_mailbox_colors",
+      "breakpoints": true
     }
   ]
 }

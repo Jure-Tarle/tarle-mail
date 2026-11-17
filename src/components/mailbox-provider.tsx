@@ -38,6 +38,8 @@ export type MailboxOption = {
 	permission?: "read_only" | "send_as" | "send_on_behalf" | "full_access";
 	isPrimary?: boolean;
 	senderAddresses?: string[];
+	/** The user's own colour for this mailbox ("#rrggbb"), or none for the automatic one. */
+	color?: string | null;
 };
 
 type MailboxContextValue = {
@@ -52,6 +54,8 @@ type MailboxContextValue = {
 	listMailboxId: string | undefined;
 	/** Puts the mailboxes in this order everywhere and saves it for the user. */
 	reorderMailboxes: (mailboxIds: string[]) => Promise<void>;
+	/** Sets the user's colour for a mailbox, or null for the automatic one, and saves it. */
+	setMailboxColor: (mailboxId: string, color: string | null) => Promise<void>;
 };
 
 const SHOW_ALL_MAILBOXES_STORAGE_KEY = "tarle-mail:show-all-mailboxes";
@@ -195,11 +199,33 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 			throw new Error("Failed to save the mailbox order");
 		}
 	}, []);
+	const setMailboxColor = useCallback(async (mailboxId: string, color: string | null) => {
+		let previous: string | null | undefined;
+		const apply = (value: string | null | undefined) => {
+			setMailboxes((items) => items.map((item) => {
+				if (item.id !== mailboxId) return item;
+				previous = item.color;
+				return { ...item, color: value };
+			}));
+			setSelectedMailboxState((current) => (current?.id === mailboxId ? { ...current, color: value } : current));
+		};
+		apply(color);
+		clearMailboxesCache();
+		const response = await authFetch("/api/mailboxes/colors", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ mailboxId, color }),
+		});
+		if (!response.ok) {
+			apply(previous);
+			throw new Error("Failed to save the mailbox colour");
+		}
+	}, []);
 	const showAllMailboxes = showAllChoice && mailboxes.length > 1;
 	const listMailboxId = showAllMailboxes ? undefined : selectedMailbox?.id;
 
 	return (
-		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading, showAllMailboxes, setShowAllMailboxes, listMailboxId, reorderMailboxes }}>
+		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading, showAllMailboxes, setShowAllMailboxes, listMailboxId, reorderMailboxes, setMailboxColor }}>
 			{children}
 		</MailboxContext.Provider>
 	);

@@ -9,7 +9,7 @@ import { getLicenseEntitlements } from "@/lib/licenses/service";
 import { tracksAccountIdentity } from "@/lib/profile/identity-utils";
 import { mailboxSchema } from "@/lib/validators";
 import { ensureMailboxDomainRouting, getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
-import { readMailboxOrder } from "@/lib/mailboxes/order";
+import { readMailboxPreferences } from "@/lib/mailboxes/order";
 import { sortByMailboxOrder } from "@/lib/mailboxes/order-utils";
 import { ensurePersonalMailbox } from "./utils";
 
@@ -17,7 +17,8 @@ export async function GET(request: Request) {
 	const env = getEnv();
 	const user = await requireUser(env, request);
 	const db = getDb(env);
-	const rows = sortByMailboxOrder(await ensurePersonalMailbox(env, db, user), await readMailboxOrder(db, user.id));
+	const preferences = await readMailboxPreferences(db, user.id);
+	const rows = sortByMailboxOrder(await ensurePersonalMailbox(env, db, user), preferences.order);
 	const entitlements = await getLicenseEntitlements(env);
 	return NextResponse.json({
 		mailboxes: await Promise.all(rows.map(async (mailbox) => ({
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
 				? { displayName: user.name, hasAvatar: !!user.avatarKey }
 				: {}),
 			senderAddresses: await getMailboxDomainAddresses(db, mailbox),
+			color: preferences.colors[mailbox.id] ?? null,
 		}))),
 		canCreateShared: user.role === "admin" && entitlements.canShareMailboxes,
 	});
