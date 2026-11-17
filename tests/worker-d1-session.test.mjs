@@ -90,11 +90,76 @@ test("withD1ReadSession anchors a session at first-unconstrained without a cooki
 	assert.equal(env.DB, db);
 });
 
-test("withD1ReadSession resumes from the client's bookmark cookie", () => {
-	const { db, session } = fakeD1();
+test("withD1ReadSession resumes from the client's bookmark cookie", async () => {
+	const { db } = fakeD1();
 	const result = withD1ReadSession({ DB: db }, requestWithCookies(`${D1_SESSION_COOKIE}=bm-prev`));
 	assert.deepEqual(db.withSessionArgs, ["bm-prev"]);
-	assert.equal(result.env.DB, session);
+	assert.equal(result.env.DB, result.session);
+	assert.equal(result.session.getBookmark(), "bm-1");
+});
+
+/** A D1 binding whose sessions run statements through `execute(constraint, sql, values)`. */
+function scriptedD1(execute) {
+	const db = {
+		withSessionArgs: [],
+		withSession(constraint) {
+			this.withSessionArgs.push(constraint);
+			const statement = (sql, values = []) => ({
+				bind: (...next) => statement(sql, next),
+				all: async () => execute(constraint, sql, values),
+				first: async () => execute(constraint, sql, values),
+				run: async () => execute(constraint, sql, values),
+				raw: async () => execute(constraint, sql, values),
+				sql,
+				values,
+			});
+			return {
+				prepare: (sql) => statement(sql),
+				batch: async (statements) => Promise.all(statements.map((item) => execute(constraint, item.sql, item.values))),
+				getBookmark: () => `after-${constraint}`,
+			};
+		},
+	};
+	return db;
+}
+
+const invalidBookmark = () => new Error("D1_ERROR: invalid commitToken bookmark provided: 00000077-00000000");
+
+test("a bookmark from another database falls back to a fresh session and retries once", async () => {
+	const db = scriptedD1((constraint, sql, values) => {
+		if (constraint === "stale-bm") throw invalidBookmark();
+		return { results: [{ sql, values }] };
+	});
+	const request = requestWithCookies(`${D1_SESSION_COOKIE}=stale-bm`);
+	const { session } = withD1ReadSession({ DB: db }, request);
+	const result = await session.prepare("select 1 where id = ?").bind(7).all();
+	assert.deepEqual(result.results, [{ sql: "select 1 where id = ?", values: [7] }]);
+	assert.deepEqual(db.withSessionArgs, ["stale-bm", "first-unconstrained"]);
+	const batch = await session.batch([session.prepare("select 2").bind(1)]);
+	assert.deepEqual(batch, [{ results: [{ sql: "select 2", values: [1] }] }]);
+	const response = withD1BookmarkCookie(request, new Response("ok"), session);
+	assert.match(response.headers.get("Set-Cookie"), new RegExp(`^${D1_SESSION_COOKIE}=after-first-unconstrained;`));
+});
+
+test("other database errors are not swallowed and keep the bookmark", async () => {
+	const db = scriptedD1(() => {
+		throw new Error("D1_ERROR: no such table: users");
+	});
+	const request = requestWithCookies(`${D1_SESSION_COOKIE}=bm-ok`);
+	const { session } = withD1ReadSession({ DB: db }, request);
+	await assert.rejects(session.prepare("select 1").all(), /no such table/);
+	assert.deepEqual(db.withSessionArgs, ["bm-ok"]);
+	const original = new Response("ok");
+	assert.equal(withD1BookmarkCookie(request, original, session), original);
+});
+
+test("an invalid bookmark is retried only once", async () => {
+	const db = scriptedD1(() => {
+		throw invalidBookmark();
+	});
+	const { session } = withD1ReadSession({ DB: db }, requestWithCookies(`${D1_SESSION_COOKIE}=stale-bm`));
+	await assert.rejects(session.prepare("select 1").all(), /invalid commitToken bookmark/);
+	assert.deepEqual(db.withSessionArgs, ["stale-bm", "first-unconstrained"]);
 });
 
 test("withD1ReadSession skips non-D1 database configs", () => {

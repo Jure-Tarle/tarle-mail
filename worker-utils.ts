@@ -79,11 +79,60 @@ export function withD1ReadSession(env: CloudflareEnv, request: Request): D1ReadS
 	if (!database || typeof database.withSession !== "function") return null;
 	// A mutation without a bookmark starts on the primary; reads may start anywhere.
 	const fallback = isReadRequest(request) ? "first-unconstrained" : "first-primary";
-	const session = database.withSession(d1SessionBookmark(request) ?? fallback);
+	const bookmark = d1SessionBookmark(request);
+	const session = bookmark ? recoverableSession(database, bookmark, fallback) : database.withSession(fallback);
 	// `DB_PRIMARY` keeps the raw primary binding reachable: authentication reads must not
 	// accept a lagging replica's copy of sessions/users (a session revoked on another
 	// device, or a freshly disabled account, has no bookmark covering it).
 	return { env: withD1Session(env, session), session };
+}
+
+const INVALID_BOOKMARK = /invalid commitToken bookmark/i;
+
+/** Set on a session that dropped the client's bookmark, so the response stores a fresh one. */
+const BOOKMARK_RESET = Symbol("d1BookmarkReset");
+
+/**
+ * A session anchored at the client's bookmark that recovers when D1 rejects the bookmark, for
+ * example after the database was replaced: the cookie still holds the old database's bookmark
+ * and every query would fail with "invalid commitToken bookmark". The first such error swaps in
+ * a session on `fallback` and retries the statement once; the response then stores the new
+ * session's bookmark (see `withD1BookmarkCookie`).
+ */
+function recoverableSession(database: D1Database, bookmark: string, fallback: D1SessionConstraint): D1DatabaseSession {
+	let current = database.withSession(bookmark);
+	let reset = false;
+	const recover = async <T>(run: () => Promise<T>): Promise<T> => {
+		try {
+			return await run();
+		} catch (error) {
+			if (reset || !INVALID_BOOKMARK.test(error instanceof Error ? error.message : String(error))) throw error;
+			reset = true;
+			current = database.withSession(fallback);
+			return run();
+		}
+	};
+	type Statement = D1PreparedStatement & { toSessionStatement(): D1PreparedStatement };
+	const statement = (query: string, values: unknown[] = []): Statement => {
+		const bound = () => current.prepare(query).bind(...values);
+		return {
+			bind: (...next: unknown[]) => statement(query, next),
+			first: (column?: string) => recover(() => (column === undefined ? bound().first() : bound().first(column))),
+			all: () => recover(() => bound().all()),
+			run: () => recover(() => bound().run()),
+			raw: (options?: { columnNames?: boolean }) => recover(() => bound().raw(options as { columnNames: true })),
+			toSessionStatement: bound,
+		} as unknown as Statement;
+	};
+	return {
+		prepare: (query: string) => statement(query),
+		batch: (statements: D1PreparedStatement[]) =>
+			recover(() => current.batch(statements.map((item) => ("toSessionStatement" in item ? (item as Statement).toSessionStatement() : item)))),
+		getBookmark: () => current.getBookmark(),
+		get [BOOKMARK_RESET]() {
+			return reset;
+		},
+	} as unknown as D1DatabaseSession;
 }
 
 function isReadRequest(request: Request): boolean {
@@ -114,7 +163,8 @@ export function shouldUseD1Session(request: Request): boolean {
  * primary, so whichever lands last stays consistent.
  */
 export function withD1BookmarkCookie(request: Request, response: Response, session: D1ReadSession["session"] | null | undefined): Response {
-	if ((request.method === "GET" || request.method === "HEAD") && d1SessionBookmark(request)) return response;
+	const replacedBookmark = !!(session as { [BOOKMARK_RESET]?: boolean } | null | undefined)?.[BOOKMARK_RESET];
+	if ((request.method === "GET" || request.method === "HEAD") && d1SessionBookmark(request) && !replacedBookmark) return response;
 	const bookmark = typeof session?.getBookmark === "function" ? session.getBookmark() : null;
 	if (!bookmark) return response;
 	const copy = new Response(response.body, response);
