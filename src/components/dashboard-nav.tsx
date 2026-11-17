@@ -255,7 +255,9 @@ export function DashboardNav({ className }: { className?: string }) {
           { id: "main", items: mainLinks.map((link) => ({ id: link.href!, node: <NavItem link={link} /> })) },
           {
             id: "more",
-            before: minimal ? undefined : <NavToggle expanded={moreOpen} onClick={toggleMore} />,
+            // Collapsed, the toggle opens the list below it; expanded, it moves below the last item it revealed.
+            before: minimal || moreOpen ? undefined : <NavToggle expanded={false} onClick={toggleMore} />,
+            after: !minimal && moreOpen ? <NavToggle expanded onClick={toggleMore} /> : undefined,
             visibleIds: (ordered) => showAllMoreLinks ? ordered : ordered.filter((id) => isActiveHref(id)),
             items: moreLinks.map((link) => ({ id: link.href!, node: <NavItem link={link} /> })),
           },

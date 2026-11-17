@@ -10,6 +10,8 @@ export type ReorderableListSpec = {
 	items: ReorderableItem[];
 	/** Row rendered above this list (e.g. a "More..." toggle). Dropping on it moves items between this list and the previous one. */
 	before?: ReactNode;
+	/** Row rendered below this list's items (e.g. a "Less" toggle once it is expanded). Not a drop boundary. */
+	after?: ReactNode;
 	/** Items stay in the layout but are not rendered (a collapsed section). */
 	hidden?: boolean;
 	/** Narrows the ordered ids down to the ones to render. */

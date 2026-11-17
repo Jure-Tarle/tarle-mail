@@ -57,3 +57,11 @@ export async function revokeManagedApiKey(id: string): Promise<void> {
 		throw new Error(typeof data.error === "string" ? data.error : "Could not revoke API key");
 	}
 }
+
+/** Gives an access key a new secret; name, permissions and mailboxes stay, the old secret stops working. */
+export async function rotateManagedApiKey(id: string): Promise<string> {
+	const response = await authFetch("/api/api-keys", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+	const data = await responseData(response);
+	if (!response.ok || typeof data.key !== "string") throw new Error(typeof data.error === "string" ? data.error : "Could not rotate the key");
+	return data.key;
+}

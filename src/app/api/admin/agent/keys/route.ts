@@ -8,7 +8,7 @@ import { getAgentProviderConfig } from "@/lib/agent/provider";
 import { isSecretEncryptionEnabled } from "@/lib/crypto/secret-box";
 
 const addSchema = z.object({ label: z.string().trim().min(1).max(80), key: z.string().trim().min(8).max(2_000) });
-const updateSchema = z.object({ id: z.string().min(1).max(64), label: z.string().trim().min(1).max(80).optional(), disabled: z.boolean().optional() });
+const updateSchema = z.object({ id: z.string().min(1).max(64), label: z.string().trim().min(1).max(80).optional(), disabled: z.boolean().optional(), key: z.string().trim().min(8).max(2_000).optional() });
 const reorderSchema = z.object({ ids: z.array(z.string().min(1).max(64)).max(50) });
 const deleteSchema = z.object({ id: z.string().min(1).max(64) });
 
@@ -57,7 +57,8 @@ export async function PATCH(request: Request) {
 	}
 	const parsed = updateSchema.safeParse(body);
 	if (!parsed.success) return Response.json({ error: "Invalid change" }, { status: 400 });
-	await updateAgentKey(access.env, parsed.data.id, { label: parsed.data.label, disabled: parsed.data.disabled });
+	if (parsed.data.key && (await hasAgentKey(access.env, access.baseUrl, parsed.data.key))) return Response.json({ error: "This key is already in the list" }, { status: 409 });
+	await updateAgentKey(access.env, parsed.data.id, { label: parsed.data.label, disabled: parsed.data.disabled, secret: parsed.data.key });
 	return respond(access.env, access.baseUrl);
 }
 

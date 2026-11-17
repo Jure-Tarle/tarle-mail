@@ -98,9 +98,11 @@ export async function addAgentKey(env: CloudflareEnv, input: { baseUrl: string; 
 	await db.insert(agentApiKeys).values({ id: newId("aik"), baseUrl: input.baseUrl, label: input.label, secret: await sealSecret(env, input.secret.trim()), hint: hintOf(input.secret), position: Number(next) || 0 });
 }
 
-export async function updateAgentKey(env: CloudflareEnv, id: string, changes: { label?: string; disabled?: boolean }): Promise<void> {
+export async function updateAgentKey(env: CloudflareEnv, id: string, changes: { label?: string; disabled?: boolean; secret?: string }): Promise<void> {
 	const values: Partial<typeof agentApiKeys.$inferInsert> = {};
 	if (changes.label !== undefined) values.label = changes.label;
+	// Replacing the value (rotation) keeps name and position and clears what the old value ran into.
+	if (changes.secret !== undefined) Object.assign(values, { secret: await sealSecret(env, changes.secret.trim()), hint: hintOf(changes.secret), cooldownUntil: null, lastError: null, lastFailureAt: null });
 	if (changes.disabled !== undefined) {
 		values.disabled = changes.disabled;
 		// Switching a key back on gives it a fresh start.

@@ -4,7 +4,7 @@ import { mobilePrimaryActionClass } from "@/components/page-header-utils";
 import { confirmDestructive } from "@/components/ui/confirm-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Copy, KeyRound, Plus, Trash2 } from "@/components/icons";
+import { Copy, KeyRound, Plus, RotateCw, Trash2 } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ export default function ApiKeysPage() {
 	const [newKey, setNewKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [createOpen, setCreateOpen] = useState(false);
+	const [rotatedName, setRotatedName] = useState<string | null>(null);
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["admin-api-keys"],
@@ -66,6 +67,23 @@ export default function ApiKeysPage() {
 			qc.invalidateQueries({ queryKey: ["admin-api-keys"] });
 		},
 	});
+	// A new secret for an existing key; shown once in the same dialog as a newly created key.
+	const rotate = useMutation({
+		mutationFn: async (key: { id: string; name: string; kind: string }) => {
+			const res = await authFetch("/api/admin/api-keys", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: key.id }) });
+			const json = (await res.json()) as { key?: string };
+			if (!res.ok || !json.key) throw new Error(t("apiKeys.rotateFailed"));
+			return { ...key, secret: json.key };
+		},
+		onSuccess: (key) => {
+			setNewKey(key.secret);
+			setCreatedMcpAllowed(key.kind === "mcp");
+			setRotatedName(key.name);
+			setCopied(false);
+			setCreateOpen(true);
+			qc.invalidateQueries({ queryKey: ["admin-api-keys"] });
+		},
+	});
 	const revoke = useMutation({
 		mutationFn: async (id: string) => {
 			const res = await authFetch(`/api/admin/api-keys?id=${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -78,7 +96,7 @@ export default function ApiKeysPage() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<h1 className="text-2xl md:text-3xl font-medium">{t("admin.section.apiKeysTitle")}</h1>
-				<Dialog open={createOpen} onOpenChange={(open) => { if (create.isPending) return; setCreateOpen(open); if (!open) { setNewKey(null); setCopied(false); } }}>
+				<Dialog open={createOpen} onOpenChange={(open) => { if (create.isPending) return; setCreateOpen(open); if (!open) { setNewKey(null); setCopied(false); setRotatedName(null); } }}>
 					<DialogTrigger asChild>
 						<Button className={mobilePrimaryActionClass}>
 							<Plus className="h-4 w-4" />
@@ -87,7 +105,7 @@ export default function ApiKeysPage() {
 					</DialogTrigger>
 					<DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto">
 						<DialogHeader>
-							<DialogTitle>{newKey ? t("apiKeys.createdTitle") : t("apiKeys.createTitle")}</DialogTitle>
+							<DialogTitle>{newKey ? (rotatedName ? t("apiKeys.rotatedTitle", { name: rotatedName }) : t("apiKeys.createdTitle")) : t("apiKeys.createTitle")}</DialogTitle>
 							<DialogDescription>{newKey ? t("apiKeys.copyNow") : t("apiKeys.nameAndAccess")}</DialogDescription>
 						</DialogHeader>
 						{!newKey && <div className="space-y-4">
@@ -127,12 +145,13 @@ export default function ApiKeysPage() {
 							{create.isPending ? t("accounts.creating") : t("adminKeys.createKey")}
 						</Button>
 						</div>}
-						{newKey && <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><code className="block break-all rounded bg-white p-2 text-xs">{newKey}</code>{createdMcpAllowed && <McpAgentInstructions mode="admin" apiKey={newKey} />}<div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(newKey).then(() => setCopied(true))}><Copy className="h-4 w-4" />{copied ? t("common.copied") : t("apiKeys.copyKey")}</Button><Button type="button" size="sm" variant="ghost" onClick={() => { setCreateOpen(false); setNewKey(null); setCopied(false); }}>{t("common.done")}</Button></div></div>}
+						{newKey && <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><code className="block break-all rounded bg-white p-2 text-xs">{newKey}</code>{createdMcpAllowed && <McpAgentInstructions mode="admin" apiKey={newKey} />}<div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(newKey).then(() => setCopied(true))}><Copy className="h-4 w-4" />{copied ? t("common.copied") : t("apiKeys.copyKey")}</Button><Button type="button" size="sm" variant="ghost" onClick={() => { setCreateOpen(false); setNewKey(null); setCopied(false); setRotatedName(null); }}>{t("common.done")}</Button></div></div>}
 					</DialogContent>
 				</Dialog>
 			</div>
 			<section className="space-y-3">
 				{revoke.isError && <p role="alert" className="text-sm text-red-600">{revoke.error.message}</p>}
+				{rotate.isError && <p role="alert" className="text-sm text-red-600">{rotate.error.message}</p>}
 				{isLoading && (
 					<SectionRowSkeleton />
 				)}
@@ -161,6 +180,7 @@ export default function ApiKeysPage() {
 									))}
 								</span>
 							</span>
+						<Button type="button" size="sm" variant="outline" disabled={rotate.isPending} onClick={async () => { if (await confirmDestructive(t("apiKeys.rotateConfirm", { name: key.name }))) rotate.mutate(key); }}><RotateCw className="h-4 w-4" />{t("apiKeys.rotate")}</Button>
 						<Button type="button" size="sm" variant="outline" disabled={revoke.isPending} onClick={async () => { if (await confirmDestructive(t("apiKeys.revokeConfirm", { name: key.name }))) revoke.mutate(key.id); }}><Trash2 className="h-4 w-4" />{t("common.revoke")}</Button>
 						</ListRow>
 					))}

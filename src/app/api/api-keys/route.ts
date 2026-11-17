@@ -11,6 +11,7 @@ import { newId } from "@/lib/ids";
 import { ADMIN_API_KEY_SCOPES } from "@/lib/api/scopes";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { hasValidSessionMutationOrigin } from "@/lib/auth/origin";
+import { rotateApiKeySecret } from "@/lib/api/rotate-key";
 
 const createKeySchema = z.object({
 	name: z.string().trim().min(1).max(100),
@@ -84,4 +85,21 @@ export async function DELETE(request: Request) {
 	await db.update(agentSendApprovals).set({ status: "cancelled" }).where(and(eq(agentSendApprovals.requestKeyId, id), eq(agentSendApprovals.status, "pending")));
 	await db.delete(apiKeys).where(and(eq(apiKeys.id, id), eq(apiKeys.userId, user.id)));
 	return NextResponse.json({ ok: true });
+}
+
+/** Rotates one of the user's own access keys: same name, permissions and mailboxes, a new secret. */
+export async function PATCH(request: Request) {
+	const env = getEnv();
+	const user = await requireUser(env, request);
+	if (!hasValidSessionMutationOrigin(request)) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+	const parsed = z.object({ id: z.string().min(1).max(64) }).safeParse(await request.json().catch(() => null));
+	if (!parsed.success) return NextResponse.json({ error: "Key required" }, { status: 400 });
+	const db = getDb(env);
+	const [key] = await db.select({ id: apiKeys.id, name: apiKeys.name, kind: apiKeys.kind, scopes: apiKeys.scopes }).from(apiKeys).where(and(eq(apiKeys.id, parsed.data.id), eq(apiKeys.userId, user.id))).limit(1);
+	if (!key || key.kind === "device") return NextResponse.json({ error: "Key not found" }, { status: 404 });
+	const scopes = parseScopes(key.scopes);
+	if (scopes.some((scope) => (ADMIN_API_KEY_SCOPES as readonly string[]).includes(scope))) return NextResponse.json({ error: "Manage this key in Admin access keys" }, { status: 403 });
+	const isAppPassword = scopes.length === 1 && scopes[0] === "jmap";
+	const rotated = await rotateApiKeySecret(db, key.id, isAppPassword);
+	return NextResponse.json({ id: key.id, name: key.name, ...rotated });
 }

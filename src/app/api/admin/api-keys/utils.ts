@@ -9,6 +9,7 @@ import { isPrimaryAdmin } from "@/lib/auth/admin";
 import { generateApiKey, parseScopes, scopesToJson } from "@/lib/api-keys";
 import { ADMIN_API_KEY_SCOPES } from "@/lib/api/scopes";
 import { newId } from "@/lib/ids";
+import { rotateApiKeySecret } from "@/lib/api/rotate-key";
 import { hasValidSessionMutationOrigin } from "@/lib/auth/origin";
 
 const adminScopes = new Set<string>(ADMIN_API_KEY_SCOPES);
@@ -75,4 +76,17 @@ export async function DELETE(request: Request) {
 	await db.update(agentSendApprovals).set({ status: "cancelled" }).where(and(eq(agentSendApprovals.requestKeyId, id), eq(agentSendApprovals.status, "pending")));
 	await db.delete(apiKeys).where(eq(apiKeys.id, id));
 	return NextResponse.json({ ok: true });
+}
+
+/** Rotates an admin access key: same name and permissions, a new secret shown once. */
+export async function PATCH(request: Request) {
+	const access = await authorize(request);
+	if (access.error) return access.error;
+	if (!hasValidSessionMutationOrigin(request)) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+	const parsed = z.object({ id: z.string().min(1).max(64) }).safeParse(await request.json().catch(() => null));
+	if (!parsed.success) return NextResponse.json({ error: "Key required" }, { status: 400 });
+	const db = getDb(access.env);
+	const [key] = await db.select({ id: apiKeys.id, scopes: apiKeys.scopes }).from(apiKeys).where(and(eq(apiKeys.id, parsed.data.id), eq(apiKeys.userId, access.user!.id))).limit(1);
+	if (!key || !parseScopes(key.scopes).some((scope) => adminScopes.has(scope))) return NextResponse.json({ error: "Key not found" }, { status: 404 });
+	return NextResponse.json(await rotateApiKeySecret(db, key.id, false));
 }

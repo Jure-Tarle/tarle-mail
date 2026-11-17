@@ -1,1 +1,1 @@
-export { GET, POST, DELETE } from "./utils";
+export { GET, POST, DELETE, PATCH } from "./utils";

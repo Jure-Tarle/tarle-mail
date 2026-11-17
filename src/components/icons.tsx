@@ -145,6 +145,7 @@ import {
 	WebhookIcon as HugeWebhookIcon,
 	WrenchIcon as HugeWrenchIcon,
 	XIcon as HugeXIcon,
+	Mic01Icon as HugeMic01Icon,
 } from "@hugeicons/core-free-icons";
 
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "ref"> & {
@@ -271,6 +272,7 @@ export const MailCheck = createIcon(HugeMailCheckIcon, "MailCheck");
 export const MailOpen = createIcon(HugeMailOpenIcon, "MailOpen");
 export const MailSend01 = createIcon(HugeMailSend01Icon, "MailSend01");
 export const MailPlus = createIcon(HugeMailPlusIcon, "MailPlus");
+export const Mic = createIcon(HugeMic01Icon, "Mic");
 export const MapPin = createIcon(HugeMapPinIcon, "MapPin");
 export const Maximize2 = createIcon(HugeMaximize02Icon, "Maximize2");
 export const Menu: LucideIcon = HamburgerMenuIcon;

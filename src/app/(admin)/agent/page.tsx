@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AgentProviderKeys } from "./AgentProviderKeys";
+import { StepBadge } from "./StepBadge";
 import { SettingsFieldGrid, SettingsPanel } from "@/components/ui/settings-panel";
 import { Switch } from "@/components/ui/switch";
 import { DEFAULT_CLOUDFLARE_MODEL } from "@/lib/agent/provider-constants";
@@ -30,6 +31,7 @@ export default function AdminAgentPage() {
 	const [loaded, setLoaded] = useState(false);
 	const [cloudflareAvailable, setCloudflareAvailable] = useState(false);
 	const [hasSavedKey, setHasSavedKey] = useState(false);
+	const [activeKeyCount, setActiveKeyCount] = useState(0);
 	const [savedEndpoint, setSavedEndpoint] = useState("");
 	const [savedProvider, setSavedProvider] = useState<"cloudflare" | "compatible" | null>(null);
 	const [modelResult, setModelResult] = useState<{ key: string; models: AgentModelOption[]; source: "catalog" | "suggested" | null; error: string | null } | null>(null);
@@ -106,7 +108,7 @@ export default function AdminAgentPage() {
 			}} aria-label={t("agentAdmin.enable")} />
 		</SettingsPanel>
 		<SettingsPanel
-			title={<span className="flex items-center gap-2"><Bot className="h-5 w-5" />{t("agentAdmin.provider")}</span>}
+			title={<span className="flex items-center gap-2"><StepBadge number={1} /><Bot className="h-5 w-5" />{t("agentAdmin.provider")}</span>}
 			description={t("agentAdmin.providerWarning")}
 			onSubmit={submit}
 			status={status}
@@ -119,7 +121,7 @@ export default function AdminAgentPage() {
 			{form.provider === "compatible" && <SettingsFieldGrid className="items-start">
 				<div className="space-y-2"><Label htmlFor="agent-url">{t("agentAdmin.baseUrl")}</Label><Input id="agent-url" type="url" value={form.baseUrl} readOnly={form.preset !== "custom"} placeholder="https://provider.example/v1" onChange={(event) => setForm((current) => ({ ...current, baseUrl: event.target.value, model: "" }))} required /></div>
 				{canUseSavedKey ? (
-					<div className="space-y-2"><p className="text-sm font-medium text-neutral-900">{t("agentAdmin.apiKey")}</p><p className="text-sm text-neutral-500">{t("agentKeys.managedBelow")}</p></div>
+					<div className="space-y-2"><p className="text-sm font-medium text-neutral-900">{t("agentAdmin.apiKey")}</p><p className="flex flex-wrap items-center gap-x-2 text-sm"><span className={activeKeyCount > 0 ? "text-green-700" : "text-amber-700"}>{t("agentKeys.activeCount", { count: activeKeyCount })}</span><a href="#agent-keys" className="font-medium text-blue-700 hover:underline">{t("agentKeys.manageLink")}</a></p></div>
 				) : (
 					<div className="space-y-2"><Label htmlFor="agent-key">{t("agentAdmin.apiKey")}</Label><Input id="agent-key" type="password" value={form.apiKey} autoComplete="new-password" placeholder={canUseSavedKey ? t("agentAdmin.savedKeyPlaceholder") : t("agentAdmin.enterKeyPlaceholder")} onChange={(event) => setForm((current) => ({ ...current, apiKey: event.target.value }))} /><p className="text-xs text-neutral-500">{canUseSavedKey ? t("agentAdmin.keySaved") : t("agentAdmin.keyNote")}</p></div>
 				)}
@@ -127,6 +129,6 @@ export default function AdminAgentPage() {
 			<div className="space-y-2"><p className="text-sm font-medium">{t("agentAdmin.models")}</p><div className="grid max-h-64 content-start gap-2 overflow-y-auto rounded-md border border-neutral-200 p-3 sm:grid-cols-2 2xl:grid-cols-3">{modelsLoading && <p className="text-sm text-neutral-500 sm:col-span-full">{t("agentAdmin.loadingModels")}</p>}{!modelsLoading && !models.length && <p className="text-sm text-neutral-500 sm:col-span-full">{t("agentAdmin.modelsUnavailable")}</p>}{models.map((item) => <label key={item.id} className="flex items-start gap-2 text-sm"><Checkbox checked={selectedModelIds.includes(item.id)} onChange={(event) => setForm((current) => ({ ...current, model: toggleAgentModelId(current.model, item.id, event.target.checked) }))} /><span>{item.name === item.id ? item.id : `${item.name} · ${item.id}`}</span></label>)}</div>{modelSource === "suggested" && <p className="text-xs text-neutral-500">{t("agentAdmin.suggested")}</p>}{modelError && <p className="text-xs text-amber-700">{modelError}</p>}<Label htmlFor="agent-model-id" className="block pt-2 text-xs text-neutral-500">{t("agentAdmin.orEnterIds")}</Label><Input id="agent-model-id" value={form.model} onChange={(event) => setForm((current) => ({ ...current, model: event.target.value }))} placeholder={form.provider === "cloudflare" ? DEFAULT_CLOUDFLARE_MODEL : "provider/model-id, provider/another-model"} required /><p className="text-xs text-neutral-500">{t("agentAdmin.toolCalling")}</p></div>
 			<div className="space-y-3"><p className="text-sm font-medium">{t("agentAdmin.rates")}</p><p className="text-xs text-neutral-500">{t("agentAdmin.ratesHint")}</p><div className="grid gap-2 2xl:grid-cols-2">{selectedModelIds.map((model) => models.find((item) => item.id === model)?.rates ? <div key={model} className="grid gap-2 rounded-xl border border-neutral-200 p-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]"><span className="min-w-0 break-all">{model}</span><span className="text-neutral-500">{t("agentAdmin.rateLine", { input: form.rates[model]?.input, output: form.rates[model]?.output })} <span className="text-xs">{t("agentAdmin.fromProvider")}</span></span></div> : <div key={model} className="grid gap-2 rounded-xl border border-neutral-200 p-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem]"><span className="min-w-0 break-all text-sm">{model}</span><label className="text-xs text-neutral-500">{t("agentAdmin.input")} <Input type="number" min="0" step="any" value={form.rates[model]?.input ?? ""} onChange={(event) => setForm((current) => updateAgentModelRate(current, model, "input", event.target.value))} placeholder={t("agentAdmin.usdPerM")} /></label><label className="text-xs text-neutral-500">{t("agentAdmin.output")} <Input type="number" min="0" step="any" value={form.rates[model]?.output ?? ""} onChange={(event) => setForm((current) => updateAgentModelRate(current, model, "output", event.target.value))} placeholder={t("agentAdmin.usdPerM")} /></label></div>)}</div></div>
 		</SettingsPanel>
-		{loaded && savedProvider === "compatible" && form.provider === "compatible" && savedEndpoint === `${form.preset}|${form.baseUrl}` && <AgentProviderKeys onCountChange={(count) => setHasSavedKey(count > 0)} />}
+		{loaded && savedProvider === "compatible" && form.provider === "compatible" && savedEndpoint === `${form.preset}|${form.baseUrl}` && <AgentProviderKeys onCountChange={(count) => { setHasSavedKey(count > 0); setActiveKeyCount(count); }} />}
 	</div>;
 }

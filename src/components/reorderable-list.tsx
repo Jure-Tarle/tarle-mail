@@ -144,6 +144,7 @@ export function ReorderableList({ lists, storageKey, enabled = true }: Reorderab
 								{nodes.get(id)}
 							</div>
 						))}
+						{list.after}
 					</div>
 				);
 			})}

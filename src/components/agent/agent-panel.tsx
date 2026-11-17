@@ -2,9 +2,9 @@
 
 import "./style.scss"
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, FileText, ListChecks, LoaderCircle, Maximize2, Minimize2, Pause, PauseCircle, PenLine, Plus, Send, Settings2, Sparkles, Square, Trash2, X } from "@/components/icons";
+import { ArrowLeft, FileText, ListChecks, LoaderCircle, Maximize2, Mic, Minimize2, Pause, PauseCircle, PenLine, Plus, Send, Settings2, Sparkles, Square, Trash2, X } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { authFetch } from "@/lib/auth/client";
 import { fetchCachedMessageDetail } from "@/lib/messages/detail-cache";
@@ -22,9 +22,12 @@ import { approveAgentAction, requestDraftReview } from "./client-actions";
 import type { AgentConversation, AgentConversationsResponse, AgentErrorResponse, AgentEvent, AgentHistoryResponse, AgentJob, AgentJobsResponse, AgentMessage, AgentPanelProps, AgentPanelView, AgentSettings, AgentSettingsResponse, QueuedAgentMessage } from "./types";
 import { activeAgentTool, activeAgentToolLabel, appendAgentReasoning, consumeAgentStream, editQueuedAgentMessage, enqueueAgentMessage, groupAgentMessages, isAgentScrollAtBottom, markAgentDraftSent, normalizeAgentHistory, readAgentConversationId, removeQueuedAgentMessage, resizeAgentInput, saveAgentConversationId, shouldSubmitAgentInput, steerQueuedAgentMessage, uniqueAgentDraftActions } from "./utils";
 import { Select } from "@/components/ui/select";
+import { isDictationSupported, useDictation } from "./use-dictation";
+
+const subscribeNothing = () => () => {};
 
 export function AgentPanel({ open, fullSize, onClose, onToggleFullSize }: AgentPanelProps) {
-	const { t } = useLanguage();
+	const { t, locale } = useLanguage();
 	const { selectedMailbox } = useSelectedMailbox();
 	const pathname = usePathname();
 	const { openDraftComposer } = useCompose();
@@ -53,6 +56,18 @@ export function AgentPanel({ open, fullSize, onClose, onToggleFullSize }: AgentP
 	const queueGenerationRef = useRef(0);
 	const menuRef = useRef<HTMLDetailsElement | null>(null);
 	const inputRef = useRef<HTMLTextAreaElement | null>(null);
+	// Dictation: speech becomes text in the input through Workers AI, so it needs no extra key.
+	const dictationSupported = useSyncExternalStore(subscribeNothing, isDictationSupported, () => false);
+	const [dictationError, setDictationError] = useState<string | null>(null);
+	const dictation = useDictation({
+		language: locale,
+		onText: (text) => {
+			setDictationError(null);
+			setInput((current) => (current.trim() ? `${current.trimEnd()} ${text}` : text));
+			requestAnimationFrame(() => inputRef.current?.focus());
+		},
+		onError: (message) => setDictationError(message === "microphone" ? t("agent.dictation.noMicrophone") : message),
+	});
 	const chatScrollRef = useRef<HTMLDivElement | null>(null);
 	const stickToBottomRef = useRef(true);
 	const selectedConversationRef = useRef<string | null>(null);
@@ -388,10 +403,27 @@ export function AgentPanel({ open, fullSize, onClose, onToggleFullSize }: AgentP
 			{openEmailId && <div className="mx-auto flex w-full max-w-3xl px-4 pb-1.5">
 				<span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-neutral-100 py-1 pl-3 pr-1 text-xs text-neutral-600"><FileText size={12} className="shrink-0" aria-hidden="true" /><span className="truncate">{t("agent.panel.currentEmail", { subject: openEmailSubjects[openEmailId] || t("list.noSubject") })}</span><button type="button" onClick={() => setDismissedMessageId(openEmailId)} className="shrink-0 rounded-full p-0.5 hover:bg-neutral-200" aria-label={t("agent.panel.removeCurrentEmail")} title={t("agent.panel.removeCurrentEmail")}><X size={12} aria-hidden="true" /></button></span>
 			</div>}
-			<form className="relative mx-auto w-full max-w-3xl pb-2 px-3" onSubmit={(event) => { event.preventDefault(); submitMessage(input); }}><textarea ref={inputRef} rows={1} className="block w-full resize-none rounded-4xl bg-blue-100/40 px-4 py-3 pr-20 text-sm leading-5 outline-none focus:border-blue-300 disabled:opacity-50" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (!shouldSubmitAgentInput(event)) return; event.preventDefault(); if (input.trim() && settings && providerConfigured && !loadingConversation) event.currentTarget.form?.requestSubmit(); }} placeholder={t("agent.panel.promptPlaceholder")} name="message" disabled={!settings || !providerConfigured || loadingConversation} />
-				<div className="absolute bottom-3.5 right-4 flex justify-end gap-2">
+			<form className="relative mx-auto w-full max-w-3xl pb-2 px-3" onSubmit={(event) => { event.preventDefault(); submitMessage(input); }}><textarea ref={inputRef} rows={1} className="block w-full resize-none rounded-4xl bg-blue-100/40 px-4 py-3 pr-28 text-sm leading-5 outline-none focus:border-blue-300 disabled:opacity-50" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (!shouldSubmitAgentInput(event)) return; event.preventDefault(); if (input.trim() && settings && providerConfigured && !loadingConversation) event.currentTarget.form?.requestSubmit(); }} placeholder={t("agent.panel.promptPlaceholder")} name="message" disabled={!settings || !providerConfigured || loadingConversation} />
+				<div className="absolute bottom-3.5 right-4 flex justify-end gap-1">
+					{dictationSupported && !busy && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => { setDictationError(null); dictation.toggle(); }}
+							disabled={dictation.state === "transcribing" || !settings || !providerConfigured || loadingConversation}
+							className={dictation.state === "recording" ? "rounded-full bg-red-600 text-white hover:bg-red-700 hover:text-white" : "rounded-full"}
+							aria-pressed={dictation.state === "recording"}
+							aria-label={dictation.state === "recording" ? t("agent.dictation.stop") : dictation.state === "transcribing" ? t("agent.dictation.transcribing") : t("agent.dictation.start")}
+							title={dictation.state === "recording" ? t("agent.dictation.stop") : t("agent.dictation.start")}
+						>
+							{dictation.state === "transcribing" ? <LoaderCircle size={18} className="animate-spin" /> : dictation.state === "recording" ? <Square size={14} className="fill-current" /> : <Mic size={18} />}
+						</Button>
+					)}
 					{busy ? <Button type="button" variant="ghost" size="sm" onClick={() => abort.current?.abort()} className="bg-neutral-500/10 text-neutral-500 rounded-full" aria-label={t("agent.panel.stop")} title={t("agent.panel.stop")}><Pause size={16} /></Button> : <Button type="submit" variant="ghost" size="sm" disabled={!input.trim() || !settings || !providerConfigured || loadingConversation} aria-label={t("agent.panel.send")} title={t("agent.panel.send")}><Send size={18} /></Button>}
 				</div>
+				{dictation.state === "recording" && <p role="status" className="px-4 pt-1 text-xs text-red-600">{t("agent.dictation.recording")}</p>}
+				{dictationError && <p role="alert" className="px-4 pt-1 text-xs text-red-600">{dictationError}</p>}
 			</form>
 		</>}
 		{view === "settings" && <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 text-sm">

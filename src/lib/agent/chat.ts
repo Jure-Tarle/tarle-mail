@@ -4,7 +4,7 @@ import { getDb } from "@/db";
 import { agentChatMessages, agentConversations, mailboxAgentSettings, messages } from "@/db/schema";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { newId } from "@/lib/ids";
-import { agentCurrentEmailContext, agentSystemPrompt, getAgentModel } from "./model";
+import { ANTHROPIC_CACHE_BREAKPOINT, agentSystemPrompt, agentTurnContext, getAgentModel } from "./model";
 import { agentProviderErrorMessage } from "./errors";
 import { getAgentEnabled } from "./provider";
 import { recordAiUsage } from "@/lib/ai/usage";
@@ -55,8 +55,9 @@ export async function createAgentChatStream(context: AgentToolContext, text: str
 	const history = await db.select().from(agentChatMessages).where(eq(agentChatMessages.conversationId, conversation.id)).orderBy(desc(agentChatMessages.createdAt)).limit(30);
 	await db.insert(agentChatMessages).values({ id: newId("chat"), conversationId: conversation.id, role: "user", content: text });
 	const prompt = history.reverse().filter((row) => row.role === "user" || row.role === "assistant").map((row) => ({ role: row.role as "user" | "assistant", content: row.content }));
-	// Sent with the latest turn rather than the system prompt so it outweighs emails named earlier in the history; never stored.
-	prompt.push({ role: "user", content: openEmailId ? `${text}\n\n(${agentCurrentEmailContext(openEmailId)})` : text });	const tools = Object.fromEntries(EMAIL_TOOL_NAMES.map((name) => [name, {
+	// Sent with the latest turn rather than the system prompt so it outweighs emails named earlier in the history
+	// and keeps the system prompt cacheable; never stored.
+	prompt.push({ role: "user", content: `${text}\n\n(${agentTurnContext(timeZone, openEmailId)})` });	const tools = Object.fromEntries(EMAIL_TOOL_NAMES.map((name) => [name, {
 		description: emailToolDescriptions[name], inputSchema: emailToolSchemas[name],
 		execute: async (input: unknown) => runEmailTool(context, name, input),
 	}]));
@@ -64,7 +65,14 @@ export async function createAgentChatStream(context: AgentToolContext, text: str
 		description: calendarToolDescriptions[name], inputSchema: calendarToolSchemas[name],
 		execute: async (input: unknown) => runCalendarTool(context, name, input),
 	}])) : {};
-	const result = streamText({ model: selection.model, system: agentSystemPrompt(settings?.instructions ?? "", timeZone), messages: prompt, tools: { ...tools, ...calendarTools }, stopWhen: stepCountIs(7), maxOutputTokens: 1200, abortSignal: signal, onStepFinish: async ({ usage }) => { await recordAiUsage({ env: context.env, details: selection, usage, source: "chat" }); } });
+	// Prompt caching (Anthropic): breakpoints after the tools, after the system prompt and on the newest user
+	// turn, so the tool loop's later steps and follow-up turns read the shared prefix from the cache.
+	const toolSet: Record<string, object> = { ...tools, ...calendarTools };
+	const toolNames = Object.keys(toolSet);
+	if (toolNames.length) toolSet[toolNames[toolNames.length - 1]] = { ...toolSet[toolNames[toolNames.length - 1]], providerOptions: ANTHROPIC_CACHE_BREAKPOINT };
+	const lastTurn = prompt[prompt.length - 1];
+	prompt[prompt.length - 1] = { ...lastTurn, providerOptions: ANTHROPIC_CACHE_BREAKPOINT } as typeof lastTurn;
+	const result = streamText({ model: selection.model, instructions: { role: "system", content: agentSystemPrompt(settings?.instructions ?? ""), providerOptions: ANTHROPIC_CACHE_BREAKPOINT }, messages: prompt, tools: toolSet as typeof tools, stopWhen: stepCountIs(7), maxOutputTokens: 1200, abortSignal: signal, onStepFinish: async ({ usage }) => { await recordAiUsage({ env: context.env, details: selection, usage, source: "chat" }); } });
 	const encoder = new TextEncoder();
 	const id = conversation.id;
 	const stream = new ReadableStream<Uint8Array>({

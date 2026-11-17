@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, KeyRound, Trash2 } from "@/components/icons";
+import { AlertTriangle, ArrowDown, ArrowUp, KeyRound, RotateCw, Trash2 } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { confirmDestructive } from "@/components/ui/confirm-dialog";
@@ -11,6 +11,7 @@ import { SettingsPanel } from "@/components/ui/settings-panel";
 import { Switch } from "@/components/ui/switch";
 import { authFetch } from "@/lib/auth/client";
 import type { AgentKeySummary } from "@/lib/agent/api-keys";
+import { StepBadge } from "./StepBadge";
 
 type KeysResponse = { keys: AgentKeySummary[]; encryption: boolean; error?: string };
 
@@ -37,6 +38,7 @@ export function AgentProviderKeys({ onCountChange }: { onCountChange: (count: nu
 	const [busy, setBusy] = useState(false);
 	const [label, setLabel] = useState("");
 	const [key, setKey] = useState("");
+	const [replacing, setReplacing] = useState<{ id: string; value: string } | null>(null);
 
 	const apply = useCallback((next: KeysResponse) => {
 		setData(next);
@@ -74,7 +76,9 @@ export function AgentProviderKeys({ onCountChange }: { onCountChange: (count: nu
 
 	return (
 		<SettingsPanel
-			title={<span className="flex items-center gap-2"><KeyRound className="h-5 w-5" />{t("agentKeys.title")}</span>}
+			id="agent-keys"
+			className="scroll-mt-6"
+			title={<span className="flex items-center gap-2"><StepBadge number={2} /><KeyRound className="h-5 w-5" />{t("agentKeys.title")}</span>}
 			description={t("agentKeys.description")}
 			status={error ? <span className="text-red-700">{error}</span> : undefined}
 		>
@@ -103,6 +107,7 @@ export function AgentProviderKeys({ onCountChange }: { onCountChange: (count: nu
 									<Switch checked={!item.disabled} disabled={busy} onCheckedChange={(on) => run("PATCH", { id: item.id, disabled: !on })} aria-label={t("agentKeys.toggle", { label: item.label })} />
 									<Button type="button" variant="ghost" size="icon" disabled={busy || index === 0} onClick={() => move(index, -1)} aria-label={t("agentKeys.up", { label: item.label })}><ArrowUp className="h-4 w-4" /></Button>
 									<Button type="button" variant="ghost" size="icon" disabled={busy || index === keys.length - 1} onClick={() => move(index, 1)} aria-label={t("agentKeys.down", { label: item.label })}><ArrowDown className="h-4 w-4" /></Button>
+									<Button type="button" variant="ghost" size="icon" disabled={busy} onClick={() => setReplacing(replacing?.id === item.id ? null : { id: item.id, value: "" })} aria-label={t("agentKeys.replace", { label: item.label })} aria-expanded={replacing?.id === item.id}><RotateCw className="h-4 w-4" /></Button>
 									<Button
 										type="button"
 										variant="ghost"
@@ -114,6 +119,21 @@ export function AgentProviderKeys({ onCountChange }: { onCountChange: (count: nu
 										<Trash2 className="h-4 w-4 text-red-600" />
 									</Button>
 								</span>
+								{replacing?.id === item.id && (
+									<form
+										className="flex w-full flex-col gap-2 pb-1 sm:flex-row"
+										onSubmit={(event) => {
+											event.preventDefault();
+											run("PATCH", { id: item.id, key: replacing.value }, () => setReplacing(null));
+										}}
+									>
+										<Input type="password" autoComplete="new-password" autoFocus value={replacing.value} onChange={(event) => setReplacing({ id: item.id, value: event.target.value })} placeholder={t("agentKeys.replacePlaceholder")} aria-label={t("agentKeys.replace", { label: item.label })} className="sm:flex-1" />
+										<span className="flex gap-2">
+											<Button type="submit" size="sm" disabled={busy || replacing.value.trim().length < 8}>{t("agentKeys.replaceSave")}</Button>
+											<Button type="button" size="sm" variant="ghost" onClick={() => setReplacing(null)}>{t("common.cancel")}</Button>
+										</span>
+									</form>
+								)}
 							</li>
 						);
 					})}
