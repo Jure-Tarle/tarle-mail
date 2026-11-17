@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "メニューを展開",
 	"navigation.collapseMenu": "メニューを折りたたむ",
 	"navigation.openMenu": "メニューを開く",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "閉じる",
 	"navigation.shortcuts": "ショートカット",
 	"navigation.poweredBy": "提供：",

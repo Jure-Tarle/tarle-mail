@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Розгорнути меню",
 	"navigation.collapseMenu": "Згорнути меню",
 	"navigation.openMenu": "Відкрити меню",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Закрити",
 	"navigation.shortcuts": "Скорочення",
 	"navigation.poweredBy": "Працює на",

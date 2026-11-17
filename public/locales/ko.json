@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "메뉴 펼치기",
 	"navigation.collapseMenu": "메뉴 접기",
 	"navigation.openMenu": "메뉴 열기",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "닫기",
 	"navigation.shortcuts": "단축키",
 	"navigation.poweredBy": "제공:",

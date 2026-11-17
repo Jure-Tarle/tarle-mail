@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Panua menyu",
 	"navigation.collapseMenu": "Kunja menyu",
 	"navigation.openMenu": "Fungua menyu",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Funga",
 	"navigation.shortcuts": "Njia za mkato",
 	"navigation.poweredBy": "Inaendeshwa na",

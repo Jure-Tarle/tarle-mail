@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Развернуть меню",
 	"navigation.collapseMenu": "Свернуть меню",
 	"navigation.openMenu": "Открыть меню",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Закрыть",
 	"navigation.shortcuts": "Горячие клавиши",
 	"navigation.poweredBy": "Работает на",

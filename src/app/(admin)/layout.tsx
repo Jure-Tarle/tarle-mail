@@ -20,6 +20,7 @@ import { SidebarResizeBoundary } from "@/components/sidebar-resize-boundary";
 import { ShortcutsProvider } from "@/components/shortcuts";
 import { CommandPaletteButton } from "@/components/command-palette";
 import { RouteTitle } from "@/components/route-title";
+import { ModeSwitch } from "@/components/mode-switch";
 
 const primaryOnlyPrefixes = [
   "/agent",
@@ -65,13 +66,14 @@ export default function DashboardLayout({
               </div>
               <SidebarResizeBoundary />
             </SidebarAside>
-            <div className="flex min-h-0 min-w-0 flex-col">
-                            <MobileTopBar title={mobileTitle} />
+            <div className="relative flex min-h-0 min-w-0 flex-col">
+              <MobileTopBar title={mobileTitle} />
+              <ModeSwitch className="absolute left-6 top-4 z-90 max-md:hidden lg:left-12" />
               <header className="fixed top-2 right-4 flex items-center gap-4 z-90">
                 <CommandPaletteButton />
                 <MailboxSelector />
               </header>
-              <main id="main-content" tabIndex={-1} className={clsx("focus:outline-none page-flush min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl max-md:rounded-t-3xl max-md:bg-white max-md:pb-24 px-6 py-10 scrollbar-gutter-stable lg:px-12", mobileTitle && "max-md:[&_h1]:sr-only")}>
+              <main id="main-content" tabIndex={-1} className={clsx("focus:outline-none page-flush min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl max-md:rounded-t-3xl max-md:bg-white max-md:pb-24 px-6 py-10 md:pt-[4.5rem] scrollbar-gutter-stable lg:px-12", mobileTitle && "max-md:[&_h1]:sr-only")}>
                 <div className="w-full max-w-3xl">{children}</div>
               </main>
             </div>

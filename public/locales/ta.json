@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "மெனுவை விரிவாக்கு",
 	"navigation.collapseMenu": "மெனுவைச் சுருக்கு",
 	"navigation.openMenu": "மெனுவைத் திற",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "மூடு",
 	"navigation.shortcuts": "குறுக்குவழிகள்",
 	"navigation.poweredBy": "வழங்குபவர்",

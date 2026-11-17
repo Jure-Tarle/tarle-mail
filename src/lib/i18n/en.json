@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Expand menu",
 	"navigation.collapseMenu": "Collapse menu",
 	"navigation.openMenu": "Open menu",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Close",
 	"navigation.shortcuts": "Shortcuts",
 	"navigation.poweredBy": "Powered by",

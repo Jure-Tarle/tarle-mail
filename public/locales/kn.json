@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "ಮೆನು ವಿಸ್ತರಿಸಿ",
 	"navigation.collapseMenu": "ಮೆನು ಸಂಕುಚಿಸಿ",
 	"navigation.openMenu": "ಮೆನು ತೆರೆಯಿರಿ",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "ಮುಚ್ಚಿ",
 	"navigation.shortcuts": "ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು",
 	"navigation.poweredBy": "ಇದರಿಂದ ಚಾಲಿತ",

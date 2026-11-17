@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "مینو پھیلائیں",
 	"navigation.collapseMenu": "مینو سمیٹیں",
 	"navigation.openMenu": "مینو کھولیں",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "بند کریں",
 	"navigation.shortcuts": "شارٹ کٹس",
 	"navigation.poweredBy": "بذریعہ",

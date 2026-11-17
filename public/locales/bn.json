@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "মেনু প্রসারিত করুন",
 	"navigation.collapseMenu": "মেনু সংকুচিত করুন",
 	"navigation.openMenu": "মেনু খুলুন",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "বন্ধ করুন",
 	"navigation.shortcuts": "শর্টকাট",
 	"navigation.poweredBy": "চালিত:",

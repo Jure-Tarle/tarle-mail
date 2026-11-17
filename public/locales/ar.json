@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "توسيع القائمة",
 	"navigation.collapseMenu": "طيّ القائمة",
 	"navigation.openMenu": "فتح القائمة",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "إغلاق",
 	"navigation.shortcuts": "الاختصارات",
 	"navigation.poweredBy": "مدعوم من",
