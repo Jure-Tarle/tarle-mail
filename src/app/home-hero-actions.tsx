@@ -12,7 +12,7 @@ export function HomeHeroActions() {
 
 	return (
 		<div className="mt-9">
-			<Button size="lg" asChild className="rounded-xl bg-[#0f1b2d] px-6 text-[#f4f6f9] transition-transform hover:bg-[#1b2a40] active:scale-[0.98] dark:bg-[#f4f6f9] dark:text-[#0f1b2d] dark:hover:bg-[#dfe4ea]">
+			<Button size="lg" asChild className="rounded-xl bg-blue-600 px-6 text-[#ffffff] transition-transform hover:bg-blue-700 active:scale-[0.98]">
 				<Link href={hasUser ? "/inbox" : "/login"}>
 					{hasUser ? t("home.openDashboard") : t("home.logIn")}
 					<ArrowRight className="h-4 w-4" />

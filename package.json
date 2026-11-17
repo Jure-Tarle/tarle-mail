@@ -89,6 +89,7 @@
     "dayjs": "^1.11.20",
     "dompurify": "^3.4.17",
     "drizzle-orm": "^0.45.2",
+    "gsap": "3.15.1",
     "mailauth": "^4.13.3",
     "mimetext": "^3.0.28",
     "mysql2": "^3.24.6",
