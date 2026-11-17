@@ -108,7 +108,7 @@ export class Mailer {
 			return { messageId };
 		}
 
-		throw new Error("Outbound mail is not configured. Set SMTP_URL, or CF_ACCOUNT_ID and CF_TOKEN.");
+		throw new Error("Outbound mail is not configured. Set SMTP_URL, or CF_ACCOUNT_ID and CLOUDFLARE_TOKEN.");
 	}
 
 	/** Relay a raw RFC 5322 message unchanged, for forwarding rules. SMTP only. */

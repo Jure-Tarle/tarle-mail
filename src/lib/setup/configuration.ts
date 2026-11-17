@@ -1,9 +1,9 @@
 import { getDatabaseConfig } from "@/db/with-database";
-import { hasCloudflareCredentials, isNodeRuntime } from "@/lib/runtime";
+import { getCloudflareToken, hasCloudflareCredentials, isNodeRuntime } from "@/lib/runtime";
 import type { SetupRequirementCheck } from "./types";
 
 export function getSetupRequirementChecks(env: CloudflareEnv): SetupRequirementCheck[] {
-	const hasApiToken = !!env.CF_TOKEN?.trim();
+	const hasApiToken = !!getCloudflareToken(env);
 	const hasGlobalKey = !!env.CF_API_KEY?.trim() && !!env.CF_EMAIL?.trim();
 
 	const database = getDatabaseConfig(env);
@@ -18,7 +18,7 @@ export function getSetupRequirementChecks(env: CloudflareEnv): SetupRequirementC
 			{
 				key: "Outbound mail",
 				configured: mailer?.configured === true,
-				message: "Set SMTP_URL, or CF_ACCOUNT_ID with CF_TOKEN to send through Cloudflare. Receiving works without it.",
+				message: "Set SMTP_URL, or CF_ACCOUNT_ID with CLOUDFLARE_TOKEN to send through Cloudflare. Receiving works without it.",
 			},
 			{
 				key: "Cloudflare API credentials (optional)",
@@ -34,7 +34,7 @@ export function getSetupRequirementChecks(env: CloudflareEnv): SetupRequirementC
 		{
 			key: "Cloudflare API credentials",
 			configured: hasApiToken || hasGlobalKey,
-			message: "Set CF_TOKEN, or set both CF_API_KEY and CF_EMAIL.",
+			message: "Set CLOUDFLARE_TOKEN, or set both CF_API_KEY and CF_EMAIL.",
 		},
 		{
 			key: database.driver === "d1" ? "D1 database" : "Database",
