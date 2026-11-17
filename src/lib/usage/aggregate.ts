@@ -26,20 +26,37 @@ export const PROVIDER_LIMITS: Record<SendingProviderId, { label: string; perDay?
 	none: { label: "Not configured" },
 };
 
+export type FlowCounts = Omit<DailyFlow, "date">;
+
+/** Adds a grouped row to the bucket it belongs in: inbound spam, other inbound mail, sent or failed. Other outbound states (queued) are not counted. */
+function addFlowCount(counts: FlowCounts, row: Pick<FlowCountRow, "direction" | "status" | "count">) {
+	const count = Number(row.count) || 0;
+	if (row.direction === "inbound") {
+		if (row.status === "spam") counts.spam += count;
+		else counts.received += count;
+	} else if (row.status === "sent") counts.sent += count;
+	else if (row.status === "failed") counts.failed += count;
+}
+
 /** Fills every day of the window, so days without mail show as zero rather than gaps. */
 export function fillDailyFlow(dates: string[], rows: FlowCountRow[]): DailyFlow[] {
 	const byDate = new Map<string, DailyFlow>(dates.map((date) => [date, { date, received: 0, spam: 0, sent: 0, failed: 0 }]));
 	for (const row of rows) {
 		const day = byDate.get(row.date);
-		if (!day) continue;
-		const count = Number(row.count) || 0;
-		if (row.direction === "inbound") {
-			if (row.status === "spam") day.spam += count;
-			else day.received += count;
-		} else if (row.status === "sent") day.sent += count;
-		else if (row.status === "failed") day.failed += count;
+		if (day) addFlowCount(day, row);
 	}
 	return dates.map((date) => byDate.get(date)!);
+}
+
+/** The same counts per user, so a per-user table adds up to the daily totals. Users without mail have no entry. */
+export function foldUserFlow(rows: (Pick<FlowCountRow, "direction" | "status" | "count"> & { userId: string })[]): Map<string, FlowCounts> {
+	const users = new Map<string, FlowCounts>();
+	for (const row of rows) {
+		let counts = users.get(row.userId);
+		if (!counts) users.set(row.userId, (counts = { received: 0, spam: 0, sent: 0, failed: 0 }));
+		addFlowCount(counts, row);
+	}
+	return users;
 }
 
 /** The host of an address that may carry a display name: `Name <a@b.com>` and `a@b.com` both give `b.com`. */
