@@ -33,7 +33,7 @@ const { getAgentModel } = await import(pathToFileURL(join(directory, "entry.mjs"
 // Answers like the Messages API: a thinking block (empty, as by default) before a tool call, then text.
 async function fixture(t, model) {
 	globalThis.testAgentProvider = {
-		provider: "compatible", preset: "anthropic", baseUrl: "https://api.anthropic.com/v1", apiKey: "test-api-key",
+		provider: "compatible", preset: "anthropic", baseUrl: "https://api.anthropic.com/v1", apiKey: "test-api-key", apiKeys: [{ id: null, secret: "test-api-key" }],
 		model, models: [model], rates: {}, source: "saved",
 	};
 	t.after(() => { delete globalThis.testAgentProvider; });

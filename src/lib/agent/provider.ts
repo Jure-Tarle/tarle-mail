@@ -5,6 +5,7 @@ import type { AgentProviderConfig, AgentProviderPreset, AgentProviderPublicConfi
 import { AGENT_SETTINGS_ID, DEFAULT_CLOUDFLARE_MODEL, PROVIDER_BASE_URLS } from "./provider-constants";
 import { parseAgentModelIds } from "./model-ids";
 import { parseAgentModelRates } from "./pricing";
+import { getAgentKeysForUse } from "./api-keys";
 
 export function resolveAgentBaseUrl(preset: AgentProviderPreset, customUrl: string) {
 	if (preset !== "custom") return PROVIDER_BASE_URLS[preset];
@@ -23,20 +24,25 @@ export async function getAgentProviderConfig(env: CloudflareEnv): Promise<AgentP
 	const rates = parseAgentModelRates(saved?.rates ?? null);
 	if (saved?.provider === "cloudflare") {
 		const models = parseAgentModelIds(saved.model || env.AI_MODEL || DEFAULT_CLOUDFLARE_MODEL);
-		return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", model: models[0] || DEFAULT_CLOUDFLARE_MODEL, models, rates, source: "saved" };
+		return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", apiKeys: [], model: models[0] || DEFAULT_CLOUDFLARE_MODEL, models, rates, source: "saved" };
 	}
 	if (saved?.provider === "compatible") {
 		const preset = saved.preset || "custom";
 		const baseUrl = resolveAgentBaseUrl(preset, saved.baseUrl || "");
 		const models = parseAgentModelIds(saved.model || "");
-		return { provider: "compatible", preset, baseUrl, apiKey: saved.apiKey || (env.AI_BASE_URL === baseUrl ? env.AI_API_KEY : "") || "", model: models[0] || "", models, rates, source: "saved" };
+		// Saved keys in failover order; before the key table exists, the old single key. An AI_API_KEY
+		// for this endpoint is the last resort and is never recorded.
+		const savedKeys = await getAgentKeysForUse(env, baseUrl);
+		const environmentKey = env.AI_BASE_URL === baseUrl && env.AI_API_KEY ? [{ id: null, secret: env.AI_API_KEY }] : [];
+		const apiKeys = [...(savedKeys ?? (saved.apiKey ? [{ id: null, secret: saved.apiKey }] : [])), ...environmentKey];
+		return { provider: "compatible", preset, baseUrl, apiKey: apiKeys[0]?.secret ?? "", apiKeys, model: models[0] || "", models, rates, source: "saved" };
 	}
-	if (env.AI) { const model = env.AI_MODEL || DEFAULT_CLOUDFLARE_MODEL; return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", model, models: [model], rates, source: "environment" }; }
-	if (env.AI_BASE_URL && env.AI_API_KEY) { const model = env.AI_MODEL || "gpt-4o-mini"; return { provider: "compatible", preset: "custom", baseUrl: env.AI_BASE_URL, apiKey: env.AI_API_KEY, model, models: [model], rates, source: "environment" }; }
-	return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", model: DEFAULT_CLOUDFLARE_MODEL, models: [DEFAULT_CLOUDFLARE_MODEL], rates, source: "default" };
+	if (env.AI) { const model = env.AI_MODEL || DEFAULT_CLOUDFLARE_MODEL; return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", apiKeys: [], model, models: [model], rates, source: "environment" }; }
+	if (env.AI_BASE_URL && env.AI_API_KEY) { const model = env.AI_MODEL || "gpt-4o-mini"; return { provider: "compatible", preset: "custom", baseUrl: env.AI_BASE_URL, apiKey: env.AI_API_KEY, apiKeys: [{ id: null, secret: env.AI_API_KEY }], model, models: [model], rates, source: "environment" }; }
+	return { provider: "cloudflare", preset: "openai", baseUrl: "", apiKey: "", apiKeys: [], model: DEFAULT_CLOUDFLARE_MODEL, models: [DEFAULT_CLOUDFLARE_MODEL], rates, source: "default" };
 }
 
 export async function getAgentProviderPublicConfig(env: CloudflareEnv): Promise<AgentProviderPublicConfig> {
-	const { apiKey, ...config } = await getAgentProviderConfig(env);
-	return { ...config, hasApiKey: !!apiKey, configured: config.provider === "cloudflare" ? !!env.AI && config.models.length > 0 : !!apiKey && !!config.baseUrl && config.models.length > 0 };
+	const { apiKey, apiKeys, ...config } = await getAgentProviderConfig(env);
+	return { ...config, hasApiKey: !!apiKey, keyCount: apiKeys.length, configured: config.provider === "cloudflare" ? !!env.AI && config.models.length > 0 : !!apiKey && !!config.baseUrl && config.models.length > 0 };
 }

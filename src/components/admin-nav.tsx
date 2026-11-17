@@ -15,7 +15,10 @@ import {
   Bot,
   ShieldCheck,
 } from "@/components/icons";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { NavSearchInput, NavSearchResults } from "./nav-search";
+import { normalizeSearchText } from "./settings/settings-nav-utils";
 import { useLanguage } from "./language-provider";
 import type { TranslationKey } from "@/lib/i18n/types";
 import type { NavLink } from "./components-nav-types";
@@ -34,6 +37,8 @@ type AdminNavLink = {
   labelKey: TranslationKey;
   icon: typeof Settings;
   permission?: AdminLinkPermission;
+  /** Section titles on the page, so the admin search finds the page by what is on it. */
+  searchKeys?: TranslationKey[];
 };
 
 // `id` names a section for its remembered open/closed state; it is not shown.
@@ -46,9 +51,9 @@ const sections: { id?: string; labelKey?: TranslationKey; links: AdminNavLink[] 
     id: "Email",
     labelKey: "admin.nav.email",
     links: [
-      { href: "/mailboxes", labelKey: "admin.nav.mailboxes", icon: Mail },
-      { href: "/domains", labelKey: "admin.nav.domains", icon: Globe2, permission: "domains" },
-      { href: "/routing", labelKey: "admin.nav.routing", icon: Route, permission: "domains" },
+      { href: "/mailboxes", labelKey: "admin.nav.mailboxes", icon: Mail, searchKeys: ["mailbox.aliases", "mailbox.ownership.title", "mailbox.sharedAccess"] },
+      { href: "/domains", labelKey: "admin.nav.domains", icon: Globe2, permission: "domains", searchKeys: ["domains.setupTitle", "domains.health.title", "domains.health.description", "domains.bimi.title", "domains.tabs.sending"] },
+      { href: "/routing", labelKey: "admin.nav.routing", icon: Route, permission: "domains", searchKeys: ["routing.catchAll"] },
       { href: "/webhooks", labelKey: "admin.nav.webhooks", icon: Webhook, permission: "primary" },
       { href: "/spam-filter", labelKey: "admin.nav.spamFilter", icon: ShieldCheck, permission: "primary" },
     ],
@@ -57,13 +62,13 @@ const sections: { id?: string; labelKey?: TranslationKey; links: AdminNavLink[] 
     id: "Administration",
     labelKey: "admin.nav.administration",
     links: [
-      { href: "/api-keys", labelKey: "admin.nav.apiKeys", icon: KeyRound, permission: "primary" },
-      { href: "/general", labelKey: "admin.nav.general", icon: Settings, permission: "primary" },
-      { href: "/agent", labelKey: "admin.nav.agent", icon: Bot, permission: "primary" },
+      { href: "/api-keys", labelKey: "admin.nav.apiKeys", icon: KeyRound, permission: "primary", searchKeys: ["admin.section.apiKeysTitle"] },
+      { href: "/general", labelKey: "admin.nav.general", icon: Settings, permission: "primary", searchKeys: ["general.attachments", "general.drive", "general.mailboxLimits", "providers.title"] },
+      { href: "/agent", labelKey: "admin.nav.agent", icon: Bot, permission: "primary", searchKeys: ["agentAdmin.provider", "agentKeys.title"] },
       { href: "/accounts", labelKey: "admin.nav.accounts", icon: Users },
       { href: "/activity", labelKey: "admin.nav.activity", icon: Activity, permission: "primary" },
       { href: "/usage", labelKey: "admin.nav.usage", icon: Presentation, permission: "primary" },
-      { href: "/backups", labelKey: "admin.nav.backups", icon: DatabaseBackup, permission: "primary" },
+      { href: "/backups", labelKey: "admin.nav.backups", icon: DatabaseBackup, permission: "primary", searchKeys: ["backups.history"] },
     ],
   },
   {
@@ -98,6 +103,7 @@ export function AdminNav({ className }: { className?: string }) {
   const { t } = useLanguage();
   const { minimal } = useSidebar();
   const user = useCurrentUser();
+  const [query, setQuery] = useState("");
 
   function canSee(link: AdminNavLink): boolean {
     if (!link.permission) return true;
@@ -107,8 +113,28 @@ export function AdminNav({ className }: { className?: string }) {
     return user.isPrimaryAdmin || user.canManageUsers;
   }
 
+  const visibleSections = sections.map((section) => ({ ...section, links: section.links.filter(canSee) }));
+  const needle = normalizeSearchText(query);
+  const results = needle
+    ? visibleSections.flatMap((section) => section.links.flatMap((link) => {
+      const label = t(link.labelKey);
+      if (normalizeSearchText(label).includes(needle)) return [{ link, label, match: null as string | null }];
+      const match = (link.searchKeys ?? []).map((key) => t(key)).find((text) => normalizeSearchText(text).includes(needle));
+      return match ? [{ link, label, match }] : [];
+    }))
+    : [];
+
   return (
     <SidebarScaffold className={className} header={<SidebarHeader href="/inbox" label={t("account.admin")} />} footer={<SidebarFooter />}>
+      {!minimal && <NavSearchInput value={query} onChange={setQuery} placeholder={t("admin.search.placeholder")} clearLabel={t("settings.search.clear")} />}
+      {needle && !minimal ? (
+        <NavSearchResults
+          label={t("settings.search.results")}
+          empty={t("admin.search.empty")}
+          results={results.map(({ link, label, match }) => ({ href: link.href, label, match, icon: link.icon }))}
+          onNavigate={() => setQuery("")}
+        />
+      ) : (
       <div className={cn("space-y-4", minimal && "space-y-2 pl-1")}>
         {sections.map((section, sectionIndex) => {
           const links = section.links.filter(canSee).map(({ labelKey, ...link }): NavLink => ({ ...link, label: t(labelKey) }));
@@ -120,6 +146,7 @@ export function AdminNav({ className }: { className?: string }) {
           );
         })}
       </div>
+      )}
     </SidebarScaffold>
   );
 }

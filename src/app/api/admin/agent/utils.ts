@@ -5,7 +5,8 @@ import { agentJobs, agentSendApprovals, appSettings } from "@/db/schema";
 import { getEnv } from "@/lib/cloudflare";
 import { requireSessionUser } from "@/lib/api/auth";
 import { isPrimaryAdmin } from "@/lib/auth/admin";
-import { getAgentEnabled, getAgentProviderConfig, getAgentProviderPublicConfig, resolveAgentBaseUrl } from "@/lib/agent/provider";
+import { getAgentEnabled, getAgentProviderPublicConfig, resolveAgentBaseUrl } from "@/lib/agent/provider";
+import { addAgentKey, getAgentKeysForUse, hasAgentKey } from "@/lib/agent/api-keys";
 import { AGENT_SETTINGS_ID } from "@/lib/agent/provider-constants";
 import { parseAgentModelIds } from "@/lib/agent/model-ids";
 import { hasValidSessionMutationOrigin } from "@/lib/auth/origin";
@@ -56,23 +57,30 @@ export async function PUT(request: Request) {
 	if (modelIds.length === 0 || modelIds.length > 20 || modelIds.some((model) => model.length > 200)) return Response.json({ error: "Choose 1 to 20 valid model IDs" }, { status: 400 });
 	if (input.provider === "cloudflare" && !access.env.AI) return Response.json({ error: "Cloudflare Workers AI binding is unavailable" }, { status: 400 });
 	let baseUrl: string | null = null;
-	let apiKey: string | null = null;
+	let newKey: string | null = null;
 	if (input.provider === "compatible") {
 		try { baseUrl = resolveAgentBaseUrl(input.preset, input.baseUrl); }
 		catch { return Response.json({ error: "Enter a valid HTTPS provider base URL" }, { status: 400 }); }
-		const current = await getAgentProviderConfig(access.env);
-		apiKey = input.apiKey?.trim() || (current.provider === "compatible" && current.preset === input.preset && current.baseUrl === baseUrl ? current.apiKey : "") || null;
-		if (!apiKey) return Response.json({ error: "Enter an API key for this provider" }, { status: 400 });
+		const typedKey = input.apiKey?.trim();
+		if (typedKey) newKey = typedKey;
+		else if (!(await getAgentKeysForUse(access.env, baseUrl))?.length && !(access.env.AI_BASE_URL === baseUrl && access.env.AI_API_KEY)) {
+			return Response.json({ error: "Enter an AI provider key for this provider" }, { status: 400 });
+		}
 	}
+	// Moves an old single key into the encrypted key list before its column is cleared below.
+	await getAgentKeysForUse(access.env, baseUrl ?? "");
 	const values = {
 		agentProvider: input.provider,
 		agentPreset: input.provider === "compatible" ? input.preset : null,
 		agentBaseUrl: baseUrl,
-		agentApiKey: apiKey,
+		// Keys live encrypted in the key list (agent_api_keys), never in this column.
+		agentApiKey: null,
 		agentModel: modelIds.join(", "),
 		agentModelRates: JSON.stringify(Object.fromEntries(modelIds.map((model) => [model, input.rates?.[model] ?? { input: null, output: null }]))),
 		updatedAt: new Date(),
 	};
 	await getDb(access.env).insert(appSettings).values({ id: AGENT_SETTINGS_ID, ...values }).onConflictDoUpdate({ target: appSettings.id, set: values });
+	// A key typed into the provider form joins the key list for this endpoint.
+	if (newKey && baseUrl && !(await hasAgentKey(access.env, baseUrl, newKey))) await addAgentKey(access.env, { baseUrl, label: `Key ${((await getAgentKeysForUse(access.env, baseUrl)) ?? []).length + 1}`, secret: newKey });
 	return Response.json({ config: await getAgentProviderPublicConfig(access.env), assistantEnabled: await getAgentEnabled(access.env), cloudflareAvailable: !!access.env.AI }, { headers: { "Cache-Control": "no-store" } });
 }

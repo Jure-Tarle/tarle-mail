@@ -18,6 +18,8 @@ interface CloudflareEnv {
 	AI_MODEL?: string;
 	AI_BASE_URL?: string;
 	AI_API_KEY?: string;
+	/** 32 random bytes, base64: encrypts stored secrets such as AI provider keys (src/lib/crypto/secret-box.ts). */
+	SECRETS_ENCRYPTION_KEY?: string;
 	// The outbound queue also carries webhook retries and import job chunks so that scheduled redelivery needs no extra binding.
 	OUTBOUND_QUEUE: Queue<
 		| import("./src/lib/email/send").OutboundQueueMessage

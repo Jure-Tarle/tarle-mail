@@ -373,6 +373,12 @@
       "statements": [
         "ALTER TABLE `user_mailbox_order` ADD `mailbox_colors` longtext;"
       ]
+    },
+    {
+      "name": "0016_agent_api_keys.sql",
+      "statements": [
+        "CREATE TABLE `agent_api_keys` (\n\t`id` varchar(191) NOT NULL,\n\t`base_url` longtext NOT NULL,\n\t`label` longtext NOT NULL,\n\t`secret` longtext NOT NULL,\n\t`hint` longtext NOT NULL,\n\t`position` bigint NOT NULL DEFAULT 0,\n\t`disabled` boolean NOT NULL DEFAULT false,\n\t`cooldown_until` bigint,\n\t`last_error` longtext,\n\t`last_failure_at` bigint,\n\t`last_used_at` bigint,\n\t`created_at` bigint NOT NULL,\n\tCONSTRAINT `agent_api_keys_id` PRIMARY KEY(`id`)\n);"
+      ]
     }
   ]
 }

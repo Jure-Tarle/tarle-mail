@@ -579,6 +579,28 @@ export const userComposePreferences = sqliteTable("user_compose_preferences", {
 });
 
 /**
+ * Keys Tarle Mail uses to call the AI provider, tried in `position` order with automatic failover:
+ * a key that is rejected, rate limited or overloaded pauses until `cooldownUntil`. `secret` is
+ * encrypted at rest when SECRETS_ENCRYPTION_KEY is set (src/lib/crypto/secret-box.ts). Keys belong
+ * to the provider endpoint they were added for (`baseUrl`).
+ */
+export const agentApiKeys = sqliteTable("agent_api_keys", {
+	id: text("id").primaryKey(),
+	baseUrl: text("base_url").notNull(),
+	label: text("label").notNull(),
+	secret: text("secret").notNull(),
+	/** The last four characters, to tell keys apart without decrypting them. */
+	hint: text("hint").notNull(),
+	position: integer("position").notNull().default(0),
+	disabled: bool("disabled").notNull().default(false),
+	cooldownUntil: timestamp("cooldown_until"),
+	lastError: text("last_error"),
+	lastFailureAt: timestamp("last_failure_at"),
+	lastUsedAt: timestamp("last_used_at"),
+	createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+});
+
+/**
  * How a user arranges their mailboxes: the order (switcher, settings) as a JSON array of mailbox ids,
  * and their own colours as a JSON object of mailbox id to "#rrggbb". Ids that no longer exist are
  * skipped on read; mailboxes missing from the order follow in their usual order.

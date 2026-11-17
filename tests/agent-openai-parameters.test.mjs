@@ -32,7 +32,7 @@ const { getAgentModel } = await import(pathToFileURL(join(directory, "entry.mjs"
 
 async function fixture(t, model, baseUrl = "https://api.openai.com/v1", preset = "openai") {
 	globalThis.testAgentProvider = {
-		provider: "compatible", preset, baseUrl, apiKey: "test-api-key",
+		provider: "compatible", preset, baseUrl, apiKey: "test-api-key", apiKeys: [{ id: null, secret: "test-api-key" }],
 		model, models: [model], rates: {}, source: "saved",
 	};
 	t.after(() => { delete globalThis.testAgentProvider; });

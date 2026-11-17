@@ -6,15 +6,19 @@ export type AgentProviderConfig = {
 	provider: AgentProviderKind;
 	preset: AgentProviderPreset;
 	baseUrl: string;
+	/** The first key to try; kept for callers that need one key, such as listing models. */
 	apiKey: string;
+	/** Every key to try, in failover order. `id` is null for keys not stored in the key list. */
+	apiKeys: { id: string | null; secret: string }[];
 	model: string;
 	models: string[];
 	rates: Record<string, AgentModelRates>;
 	source: "saved" | "environment" | "default";
 };
 
-export type AgentProviderPublicConfig = Omit<AgentProviderConfig, "apiKey"> & {
+export type AgentProviderPublicConfig = Omit<AgentProviderConfig, "apiKey" | "apiKeys"> & {
 	hasApiKey: boolean;
+	keyCount: number;
 	configured: boolean;
 };
 

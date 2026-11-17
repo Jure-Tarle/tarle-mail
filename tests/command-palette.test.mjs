@@ -186,7 +186,7 @@ test("admin pages are for admins and follow the admin nav permissions", () => {
 
 test("the admin links match src/components/admin-nav.tsx", () => {
 	const source = readFileSync(join(root, "src/components/admin-nav.tsx"), "utf8");
-	const fromNav = [...source.matchAll(/\{ href: "([^"]+)", labelKey: "([^"]+)", icon: \w+(?:, permission: "(\w+)")? \}/g)].map(
+	const fromNav = [...source.matchAll(/\{ href: "([^"]+)", labelKey: "([^"]+)", icon: \w+(?:, permission: "(\w+)")?(?:, searchKeys: \[[^\]]*\])? \}/g)].map(
 		([, href, labelKey, permission]) => ({ href, labelKey, permission }),
 	);
 	assert.ok(fromNav.length > 0);

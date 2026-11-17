@@ -3,7 +3,10 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { defaultSettingsMiddleware, wrapLanguageModel } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
+import { classifyProviderKeyFailure } from "./api-key-failover";
+import { recordAgentKeyResult } from "./api-keys";
 import { getAgentProviderConfig } from "./provider";
+import type { AgentProviderConfig } from "./provider-types";
 import { PROVIDER_BASE_URLS } from "./provider-constants";
 import { agentTimeContext } from "./time";
 
@@ -53,15 +56,39 @@ function withDedupedStreams(binding: Ai): Ai {
 	});
 }
 
+/**
+ * A fetch that tries each AI provider key in turn: when a key is rejected, rate limited or the provider
+ * is overloaded, the same request goes out again with the next key before anything reads the
+ * response. Each key's outcome is recorded so the next request starts with one that works.
+ */
+function failoverFetch(env: CloudflareEnv, keys: AgentProviderConfig["apiKeys"]): typeof fetch {
+	return async (input, init) => {
+		const baseHeaders = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+		for (const [index, key] of keys.entries()) {
+			const headers = new Headers(baseHeaders);
+			// Each SDK sends the key in its own header: Anthropic in x-api-key, the others as a bearer token.
+			if (headers.has("x-api-key")) headers.set("x-api-key", key.secret);
+			if (headers.has("authorization")) headers.set("authorization", `Bearer ${key.secret}`);
+			const response = await fetch(input, { ...init, headers });
+			const failure = classifyProviderKeyFailure(response.status, response.headers.get("retry-after"));
+			if (key.id) await recordAgentKeyResult(env, key.id, failure ? { ...failure, status: response.status } : null);
+			if (!failure || index === keys.length - 1) return response;
+			await response.body?.cancel();
+		}
+		return fetch(input, init);
+	};
+}
+
 export async function getAgentModel(env: CloudflareEnv, requestedModel?: string | null) {
 	const config = await getAgentProviderConfig(env);
 	const modelId = requestedModel && config.models.includes(requestedModel) ? requestedModel : config.model;
 	const details = { modelId, provider: config.provider === "cloudflare" ? "cloudflare" : config.preset, rates: config.rates[modelId] };
 	if (config.provider === "cloudflare") return env.AI ? { model: createWorkersAI({ binding: withDedupedStreams(env.AI) })(modelId), ...details } : null;
 	if (config.baseUrl && config.apiKey && modelId) {
+		const keyFetch = failoverFetch(env, config.apiKeys);
 		// Match the endpoint so custom/environment configurations work too.
 		if (config.baseUrl.replace(/\/+$/, "") === PROVIDER_BASE_URLS.openai) {
-			const provider = createOpenAI({ baseURL: config.baseUrl, apiKey: config.apiKey });
+			const provider = createOpenAI({ baseURL: config.baseUrl, apiKey: config.apiKey, fetch: keyFetch });
 			const baseModelId = modelId.startsWith("ft:") ? modelId.split(":")[1] : modelId;
 			const gptVersion = /^gpt-(\d+)(?:[.-]|$)/.exec(baseModelId);
 			// GPT-5 and later use Responses to support reasoning together with tools.
@@ -72,13 +99,13 @@ export async function getAgentModel(env: CloudflareEnv, requestedModel?: string 
 			return { model: provider.chat(modelId), ...details };
 		}
 		if (config.baseUrl.replace(/\/+$/, "") === PROVIDER_BASE_URLS.anthropic) {
-			const model = createAnthropic({ baseURL: config.baseUrl, apiKey: config.apiKey })(modelId);
+			const model = createAnthropic({ baseURL: config.baseUrl, apiKey: config.apiKey, fetch: keyFetch })(modelId);
 			// Claude 5.x models think by default, and thinking counts against the small output caps of chat
 			// and auto-drafts. Low effort keeps it short; older models do not think unless asked.
 			if (!/^claude-[a-z]+-5(?:-|$)/.test(modelId)) return { model, ...details };
 			return { model: wrapLanguageModel({ model, middleware: defaultSettingsMiddleware({ settings: { providerOptions: { anthropic: { effort: "low" } } } }) }), ...details };
 		}
-		const provider = createOpenAICompatible({ name: "tarle-mail", baseURL: config.baseUrl, apiKey: config.apiKey });
+		const provider = createOpenAICompatible({ name: "tarle-mail", baseURL: config.baseUrl, apiKey: config.apiKey, fetch: keyFetch });
 		return { model: provider.chatModel(modelId), ...details };
 	}
 	return null;

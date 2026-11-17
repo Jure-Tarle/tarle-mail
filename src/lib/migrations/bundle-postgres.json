@@ -398,6 +398,12 @@
       "statements": [
         "ALTER TABLE \"user_mailbox_order\" ADD COLUMN \"mailbox_colors\" text;"
       ]
+    },
+    {
+      "name": "0016_agent_api_keys.sql",
+      "statements": [
+        "CREATE TABLE \"agent_api_keys\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"base_url\" text NOT NULL,\n\t\"label\" text NOT NULL,\n\t\"secret\" text NOT NULL,\n\t\"hint\" text NOT NULL,\n\t\"position\" bigint DEFAULT 0 NOT NULL,\n\t\"disabled\" boolean DEFAULT false NOT NULL,\n\t\"cooldown_until\" bigint,\n\t\"last_error\" text,\n\t\"last_failure_at\" bigint,\n\t\"last_used_at\" bigint,\n\t\"created_at\" bigint NOT NULL\n);"
+      ]
     }
   ]
 }
