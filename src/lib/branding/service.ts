@@ -7,7 +7,7 @@ import { getLicenseEntitlements } from "@/lib/licenses/service";
 export const APP_SETTINGS_ID = "default";
 export const DEFAULT_APP_NAME = "Tarle Mail";
 // The database migrations seed upstream's name; show ours until an admin picks another one.
-const UPSTREAM_DEFAULT_APP_NAME = "Tarle Mail";
+const UPSTREAM_DEFAULT_APP_NAME = "Mailflare";
 export const BRANDING_ICON_KEY = "branding/app-icon";
 
 export async function getBranding(env: CloudflareEnv): Promise<Branding> {

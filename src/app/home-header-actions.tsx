@@ -16,7 +16,12 @@ export function HomeHeaderActions() {
 	return (
 		<>
 			{getHomeActions(false).map((action) => (
-				<Button key={action.href} variant={action.variant} asChild>
+				<Button
+					key={action.href}
+					variant={action.variant}
+					asChild
+					className={action.variant === "default" ? "bg-[#0f1b2d] text-[#f4f6f9] hover:bg-[#1b2a40] dark:bg-[#f4f6f9] dark:text-[#0f1b2d] dark:hover:bg-[#dfe4ea]" : undefined}
+				>
 					<Link href={action.href}>{t(action.labelKey)}</Link>
 				</Button>
 			))}
