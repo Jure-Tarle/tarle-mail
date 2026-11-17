@@ -439,7 +439,7 @@
 	"admin.nav.routing": "Routing",
 	"admin.nav.webhooks": "Webhooks",
 	"admin.nav.spamFilter": "Spam filter",
-	"admin.nav.administration": "Administration",
+	"admin.nav.administration": "Admin",
 	"admin.nav.apiKeys": "API keys",
 	"admin.nav.general": "General",
 	"admin.nav.agent": "Agent",
