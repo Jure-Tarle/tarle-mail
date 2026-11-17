@@ -13,6 +13,7 @@ import { HomeHeaderActions } from "./home-header-actions";
 import { HomeHeroActions } from "./home-hero-actions";
 import { LandingMotion } from "./landing-motion";
 import { SOURCE_URL } from "./utils";
+import { BRAND_ICON_VERSION } from "@/lib/branding/icon-version";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const branding = await getHomeBranding();
   return {
     title: branding.appName,
-    icons: { icon: branding.hasCustomIcon ? "/api/branding/icon" : "/icon-96.png" },
+    icons: { icon: `${branding.hasCustomIcon ? "/api/branding/icon" : "/icon-96.png"}?v=${BRAND_ICON_VERSION}` },
   };
 }
 

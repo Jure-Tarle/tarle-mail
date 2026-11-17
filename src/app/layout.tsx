@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND_ICON_VERSION } from "@/lib/branding/icon-version";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { LanguageProvider } from "@/components/language-provider";
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	return {
 		title: appName,
 		description: "Multi-tenant email on Cloudflare",
-		icons: { icon: "/api/branding/icon", apple: "/icon-192.png" },
+		icons: { icon: `/api/branding/icon?v=${BRAND_ICON_VERSION}`, apple: `/icon-192.png?v=${BRAND_ICON_VERSION}` },
 		appleWebApp: {
 			capable: true,
 			title: appName,
@@ -56,7 +57,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 			<head>
 				<script dangerouslySetInnerHTML={{ __html: sidebarBootstrapScript }} />
 				<script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-				<link rel="icon" href="/api/branding/icon"></link>
+				<link rel="icon" href={`/api/branding/icon?v=${BRAND_ICON_VERSION}`}></link>
 			</head>
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 				<LanguageProvider initialLocale={locale} initialMessages={messages}><Providers initialBranding={branding}>{children}</Providers></LanguageProvider>
