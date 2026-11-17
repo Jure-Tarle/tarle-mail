@@ -13,6 +13,7 @@ import { recordAiUsage } from "@/lib/ai/usage";
 import { agentProviderErrorMessage } from "../errors";
 import { runEmailTool } from "../tools";
 import { notifyUsersOfNewMessage } from "@/lib/realtime/utils";
+import { isSenderExcluded } from "../sender-rules";
 import { getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
 
 export type AgentDraftQueueMessage = { kind: "agent.draft"; jobId: string };
@@ -32,6 +33,7 @@ export async function scheduleAutoDraft(env: CloudflareEnv, input: { mailboxId: 
 	const [mailbox] = await db.select().from(mailboxes).where(eq(mailboxes.id, input.mailboxId)).limit(1);
 	if (mailbox && (await getMailboxDomainAddresses(db, mailbox)).includes(normalizeEmailAddress(input.sender))) return;
 	if (!settings?.autoDraftEnabled || mailbox?.autoReplyEnabled) return;
+	if (isSenderExcluded(input.sender, settings.autoDraftSkipSenders ?? "")) return;
 	const reviewerUserId = settings.reviewerUserId || input.ownerUserId;
 	const [reviewer] = await db.select().from(users).where(eq(users.id, reviewerUserId)).limit(1);
 	if (!reviewer || reviewer.disabled || !(await getMailboxAccessLevel(db, reviewer, input.mailboxId))?.canSendOnBehalf) return;

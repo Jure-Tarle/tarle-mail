@@ -1211,6 +1211,8 @@ export const mailboxAgentSettings = sqliteTable("mailbox_agent_settings", {
 	autoDraftEnabled: bool("auto_draft_enabled").notNull().default(false),
 	reviewerUserId: text("reviewer_user_id").references(() => users.id, { onDelete: "set null" }),
 	instructions: text("instructions").notNull().default(""),
+	/** Senders that never get AI reply drafts, one rule per line (src/lib/agent/sender-rules.ts). */
+	autoDraftSkipSenders: text("auto_draft_skip_senders").notNull().default(""),
 	dailyLimit: integer("daily_limit").notNull().default(25),
 	updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 }, (t) => [index("mailbox_agent_settings_reviewer_idx").on(t.reviewerUserId)]);

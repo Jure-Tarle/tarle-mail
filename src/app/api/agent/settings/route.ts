@@ -8,8 +8,9 @@ import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { getAgentProviderPublicConfig } from "@/lib/agent/provider";
 import { isPrimaryAdmin } from "@/lib/auth/admin";
 import { hasValidSessionMutationOrigin } from "@/lib/auth/origin";
+import { parseSenderRules } from "@/lib/agent/sender-rules";
 
-const schema = z.object({ mailboxId: z.string().min(1), enabled: z.boolean(), modelId: z.string().max(200).nullable().optional(), autoDraftEnabled: z.boolean(), reviewerUserId: z.string().nullable().optional(), instructions: z.string().max(4_000), dailyLimit: z.number().int().min(1).max(100) });
+const schema = z.object({ mailboxId: z.string().min(1), enabled: z.boolean(), modelId: z.string().max(200).nullable().optional(), autoDraftEnabled: z.boolean(), reviewerUserId: z.string().nullable().optional(), instructions: z.string().max(4_000), autoDraftSkipSenders: z.string().max(8_000).optional(), dailyLimit: z.number().int().min(1).max(100) });
 
 export async function GET(request: Request) {
 	const env = getEnv();
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
 	const agentProvider = await getAgentProviderPublicConfig(env);
 	const provider = agentProvider.configured ? { kind: agentProvider.provider === "cloudflare" ? "Cloudflare Workers AI" : agentProvider.preset === "custom" ? "OpenAI-compatible API" : agentProvider.preset, model: agentProvider.model } : null;
 	const modelId = settings?.modelId && agentProvider.models.includes(settings.modelId) ? settings.modelId : agentProvider.models[0] ?? null;
-	return Response.json({ settings: settings ? { ...settings, enabled: true, modelId } : { mailboxId, enabled: true, modelId, autoDraftEnabled: false, reviewerUserId: access.mailbox.userId, instructions: "", dailyLimit: 25 }, models: agentProvider.models, 		canManage: access.canManage, canConfigureProvider: isPrimaryAdmin(user), providerConfigured: agentProvider.configured, provider, autoReplyEnabled: access.mailbox.autoReplyEnabled, reviewers });
+	return Response.json({ settings: settings ? { ...settings, enabled: true, modelId } : { mailboxId, enabled: true, modelId, autoDraftEnabled: false, reviewerUserId: access.mailbox.userId, instructions: "", autoDraftSkipSenders: "", dailyLimit: 25 }, models: agentProvider.models, 		canManage: access.canManage, canConfigureProvider: isPrimaryAdmin(user), providerConfigured: agentProvider.configured, provider, autoReplyEnabled: access.mailbox.autoReplyEnabled, reviewers });
 }
 
 export async function PUT(request: Request) {
@@ -49,7 +50,10 @@ export async function PUT(request: Request) {
 	const agentProvider = await getAgentProviderPublicConfig(env);
 	if (parsed.data.modelId && !agentProvider.models.includes(parsed.data.modelId)) return Response.json({ error: "Choose a configured model" }, { status: 400 });
 	const modelId = parsed.data.modelId || agentProvider.models[0] || null;
-	await db.insert(mailboxAgentSettings).values({ ...parsed.data, enabled: true, modelId, reviewerUserId: reviewerId }).onConflictDoUpdate({ target: mailboxAgentSettings.mailboxId, set: { enabled: true, modelId, autoDraftEnabled: parsed.data.autoDraftEnabled, reviewerUserId: reviewerId, instructions: parsed.data.instructions, dailyLimit: parsed.data.dailyLimit, updatedAt: new Date() } });
+	const skipSenders = parsed.data.autoDraftSkipSenders ?? "";
+	const ruleErrors = parseSenderRules(skipSenders).errors;
+	if (ruleErrors.length) return Response.json({ error: ruleErrors[0] }, { status: 400 });
+	await db.insert(mailboxAgentSettings).values({ ...parsed.data, autoDraftSkipSenders: skipSenders, enabled: true, modelId, reviewerUserId: reviewerId }).onConflictDoUpdate({ target: mailboxAgentSettings.mailboxId, set: { enabled: true, modelId, autoDraftEnabled: parsed.data.autoDraftEnabled, reviewerUserId: reviewerId, instructions: parsed.data.instructions, autoDraftSkipSenders: skipSenders, dailyLimit: parsed.data.dailyLimit, updatedAt: new Date() } });
 	if (!parsed.data.autoDraftEnabled) await db.update(agentJobs).set({ status: "skipped", reason: "Auto-drafting disabled" }).where(and(eq(agentJobs.mailboxId, parsed.data.mailboxId), eq(agentJobs.status, "pending")));
 	return Response.json({ ok: true });
 }
