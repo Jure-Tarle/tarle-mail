@@ -12,6 +12,8 @@
 	"navigation.trash": "휴지통",
 	"navigation.more": "더보기...",
 	"navigation.less": "간단히 보기...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "폴더",
 	"navigation.noFolders": "아직 폴더가 없습니다",
 	"navigation.createFolder": "폴더 만들기",

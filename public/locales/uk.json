@@ -12,6 +12,8 @@
 	"navigation.trash": "Кошик",
 	"navigation.more": "Більше...",
 	"navigation.less": "Показати менше...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Папки",
 	"navigation.noFolders": "Папок ще немає",
 	"navigation.createFolder": "Створити папку",

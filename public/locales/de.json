@@ -12,6 +12,8 @@
 	"navigation.trash": "Papierkorb",
 	"navigation.more": "Mehr...",
 	"navigation.less": "Weniger anzeigen...",
+	"navigation.mailboxes": "Postfächer",
+	"navigation.allMailboxes": "Alle Postfächer",
 	"navigation.folders": "Ordner",
 	"navigation.noFolders": "Noch keine Ordner",
 	"navigation.createFolder": "Ordner erstellen",

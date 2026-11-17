@@ -12,6 +12,8 @@
 	"navigation.trash": "Корзина",
 	"navigation.more": "Ещё...",
 	"navigation.less": "Показать меньше...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Папки",
 	"navigation.noFolders": "Папок пока нет",
 	"navigation.createFolder": "Создать папку",

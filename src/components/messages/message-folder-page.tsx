@@ -90,6 +90,7 @@ function MessageListRowComponent({
 	onOpening,
 	dragMessageIds,
 	todayKey,
+	mailboxLabel,
 }: MessageListRowProps) {
 	const { t } = useLanguage();
 	const Icon = config.icon;
@@ -215,6 +216,7 @@ function MessageListRowComponent({
 						className={`mt-1 block truncate text-sm ${unread ? "font-semibold text-neutral-900" : "text-neutral-700"
 							}`}
 					>
+						{mailboxLabel && <MailboxChip label={mailboxLabel} />}
 						{message.subject ?? t("list.noSubject")}
 					</span>
 					<span className="mt-0.5 block truncate text-xs leading-5 text-neutral-500">
@@ -294,6 +296,7 @@ function MessageListRowComponent({
 					aria-current={active ? "true" : undefined}
 					className="min-w-0 truncate focus-visible:outline-none after:absolute after:inset-0"
 				>
+					{mailboxLabel && <MailboxChip label={mailboxLabel} />}
 					<span className={unread ? "font-semibold text-neutral-900" : ""}>
 						{rowMessage.subject ?? t("list.noSubject")}
 					</span>
@@ -354,6 +357,15 @@ function MessageListRowComponent({
 
 const MessageListRow = memo(MessageListRowComponent);
 
+/** Marks which mailbox a row belongs to while the list combines all mailboxes. */
+function MailboxChip({ label }: { label: string }) {
+	return (
+		<span title={label} className="mr-2 inline-block max-w-[11rem] truncate rounded bg-blue-50 px-1.5 align-[1px] text-[11px] font-medium leading-4 text-blue-700">
+			{label}
+		</span>
+	);
+}
+
 export function MessageFolderPage({
 	config,
 	compact = false,
@@ -361,7 +373,7 @@ export function MessageFolderPage({
 }: MessageFolderPageProps) {
 	const { t } = useLanguage();
 	const title = config.titleKey ? t(config.titleKey) : config.title;
-	const { selectedMailbox, isLoading: mailboxesLoading } = useSelectedMailbox();
+	const { selectedMailbox, listMailboxId, showAllMailboxes, mailboxes, isLoading: mailboxesLoading } = useSelectedMailbox();
 	const { query } = useMailSearch();
 	const isMobile = useIsMobile();
 	const listState = useMessageListState();
@@ -396,14 +408,18 @@ export function MessageFolderPage({
 	const setSelectedMessages = listState?.setSelectedMessages ?? setInternalSelectedMessages;
 	const unreadOnly = listState?.unreadOnly ?? internalUnreadOnly;
 	const setUnreadOnly = listState?.setUnreadOnly ?? setInternalUnreadOnly;
-	const { messages, isLoading, total, limit, updateMessages } = useMessages(config.folder, selectedMailbox?.id, {
+	const { messages, isLoading, total, limit, updateMessages } = useMessages(config.folder, listMailboxId, {
 		query,
 		limit: pageSize,
 		offset,
 		read: unreadOnly ? "unread" : "all",
 		group: grouped ? "thread" : undefined,
 	}, !mailboxesLoading, config.folderId);
-	const { counts } = useMessageCounts(selectedMailbox?.id, !mailboxesLoading);
+	const { counts } = useMessageCounts(listMailboxId, !mailboxesLoading);
+	const mailboxLabels = useMemo(
+		() => new Map(mailboxes.map((mailbox) => [mailbox.id, `${mailbox.localPart}@${mailbox.hostname}`])),
+		[mailboxes],
+	);
 	usePageLoading(mailboxesLoading || isLoading, true);
 	const headerIcons = config.headerIcons ?? [];
 	const hasActiveFilters = !!query.trim();
@@ -582,9 +598,9 @@ export function MessageFolderPage({
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<div className={`flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 ${compact ? "px-4" : "px-4.5 md:px-6"}`}>
+			<div className={`flex h-14 shrink-0 items-center justify-between gap-3 border-b border-neutral-200 ${compact ? "px-4" : "px-4.5 md:px-6"}`}>
 				{selectedMessageId ? <h2 className="sr-only">{title}</h2> : <h1 className="sr-only">{title}</h1>}
-				<div className="flex items-center gap-3 w-full">
+				<div className="flex min-w-0 flex-1 items-center gap-3">
 					<Tooltip label={t("list.selectAll")}>
 						<Checkbox
 							checked={allVisibleSelected}
@@ -610,7 +626,7 @@ export function MessageFolderPage({
 					)}
 				</div>
 				{(selectedIds.length === 0 || compact) && (
-					<div className="flex items-center gap-2 text-neutral-500">
+					<div className="flex shrink-0 items-center gap-2 text-neutral-500">
 						<span className="text-xs text-neutral-500 whitespace-nowrap">
 							{t("list.range", { start: pageRange.start, end: pageRange.end, total: pageRange.total })}
 						</span>
@@ -683,7 +699,7 @@ export function MessageFolderPage({
 			{!mailboxesLoading && <MailboxStorageBanner mailboxId={selectedMailbox?.id} />}
 
 			<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-gutter-stable">
-				{config.folder === "inbox" && !config.folderId && offset === 0 && !mailboxesLoading && <DueFollowUps mailboxId={selectedMailbox?.id} />}
+				{config.folder === "inbox" && !config.folderId && offset === 0 && !mailboxesLoading && <DueFollowUps mailboxId={listMailboxId} />}
 				<div role="list" aria-label={title} className="divide-y divide-neutral-100">
 					{messages.map((message) => (
 						<MessageListRow
@@ -700,6 +716,7 @@ export function MessageFolderPage({
 							onMessageAction={handleMessageAction}
 							dragMessageIds={selectedIdSet.has(message.id) ? selectedDragIds : undefined}
 							todayKey={todayKey}
+							mailboxLabel={showAllMailboxes && message.mailboxId ? mailboxLabels.get(message.mailboxId) : undefined}
 						/>
 					))}
 				</div>

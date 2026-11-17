@@ -12,6 +12,8 @@
 	"navigation.trash": "回收站",
 	"navigation.more": "更多…",
 	"navigation.less": "收起…",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "文件夹",
 	"navigation.noFolders": "暂无文件夹",
 	"navigation.createFolder": "新建文件夹",

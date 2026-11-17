@@ -12,6 +12,8 @@
 	"navigation.trash": "سطل زباله",
 	"navigation.more": "بیشتر...",
 	"navigation.less": "نمایش کمتر...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "پوشه‌ها",
 	"navigation.noFolders": "هنوز پوشه‌ای وجود ندارد",
 	"navigation.createFolder": "ایجاد پوشه",

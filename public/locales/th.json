@@ -12,6 +12,8 @@
 	"navigation.trash": "ถังขยะ",
 	"navigation.more": "เพิ่มเติม...",
 	"navigation.less": "แสดงน้อยลง...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "โฟลเดอร์",
 	"navigation.noFolders": "ยังไม่มีโฟลเดอร์",
 	"navigation.createFolder": "สร้างโฟลเดอร์",

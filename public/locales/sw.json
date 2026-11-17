@@ -12,6 +12,8 @@
 	"navigation.trash": "Tupio",
 	"navigation.more": "Zaidi...",
 	"navigation.less": "Onyesha pungufu...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Folda",
 	"navigation.noFolders": "Bado hakuna folda",
 	"navigation.createFolder": "Unda folda",

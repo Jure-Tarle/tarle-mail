@@ -12,6 +12,8 @@
 	"navigation.trash": "ゴミ箱",
 	"navigation.more": "もっと見る…",
 	"navigation.less": "表示を減らす…",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "フォルダ",
 	"navigation.noFolders": "フォルダはまだありません",
 	"navigation.createFolder": "フォルダを作成",

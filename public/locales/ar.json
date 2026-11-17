@@ -12,6 +12,8 @@
 	"navigation.trash": "المحذوفات",
 	"navigation.more": "المزيد...",
 	"navigation.less": "عرض أقل...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "المجلدات",
 	"navigation.noFolders": "لا توجد مجلدات بعد",
 	"navigation.createFolder": "إنشاء مجلد",

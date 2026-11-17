@@ -12,6 +12,8 @@
 	"navigation.trash": "Lixeira",
 	"navigation.more": "Mais...",
 	"navigation.less": "Mostrar menos...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Pastas",
 	"navigation.noFolders": "Nenhuma pasta ainda",
 	"navigation.createFolder": "Criar pasta",

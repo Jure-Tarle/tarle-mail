@@ -12,6 +12,8 @@
 	"navigation.trash": "Papelera",
 	"navigation.more": "Más...",
 	"navigation.less": "Mostrar menos...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Carpetas",
 	"navigation.noFolders": "Aún no hay carpetas",
 	"navigation.createFolder": "Crear carpeta",

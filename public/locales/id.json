@@ -12,6 +12,8 @@
 	"navigation.trash": "Sampah",
 	"navigation.more": "Lainnya...",
 	"navigation.less": "Tampilkan lebih sedikit...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Folder",
 	"navigation.noFolders": "Belum ada folder",
 	"navigation.createFolder": "Buat folder",

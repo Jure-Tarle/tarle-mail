@@ -8,7 +8,7 @@ import { useAssistantOpen } from "@/components/agent/assistant-open-state";
 import { useCompose } from "@/components/compose/compose-context";
 import { useMailSearch } from "@/components/mail-search/mail-search-context";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
-import { useIsDesktop } from "@/components/sidebar-mobile-utils";
+import { useIsDesktop, useIsWide } from "@/components/sidebar-mobile-utils";
 import { readColumnWidth, readInitialColumnWidth, saveColumnWidth } from "@/components/column-width-preferences";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { BulkMessageActionBar } from "./bulk-message-action-bar";
@@ -48,7 +48,9 @@ export function MessageSplitLayout({
 	const { expanded: composeExpanded } = useCompose();
 	const composeDocked = composeExpanded && isDesktop;
 	const splitColumns = twoColumnReading || composeDocked;
-	const listVisible = splitColumns && (composeDocked || (!assistantOpen && manualListVisible));
+	// Below 1280px a docked composer takes the whole content area, so it keeps room for its toolbar.
+	const isWide = useIsWide();
+	const listVisible = splitColumns && (composeDocked ? isWide : (!assistantOpen && manualListVisible));
 	const detailPrefix = `${config.hrefPrefix}/`;
 	const selectedMessageId = pathname.startsWith(detailPrefix)
 		? pathname.slice(detailPrefix.length).split("/")[0]

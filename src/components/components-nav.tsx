@@ -25,7 +25,7 @@ export function NavItem({ link, iconClassName, labelClassName, wrap }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { openComposer } = useCompose();
-  const { selectedMailbox } = useSelectedMailbox();
+  const { listMailboxId } = useSelectedMailbox();
   const { minimal } = useSidebar();
   const { query } = useMailSearch();
   const [conversationView] = useConversationView();
@@ -101,11 +101,11 @@ export function NavItem({ link, iconClassName, labelClassName, wrap }: Props) {
 
   function prefetch() {
     if (!link.preloadMessages || active || !link.href) return;
-    const key = [link.href, selectedMailbox?.id ?? "", query, conversationView].join("\u0000");
+    const key = [link.href, listMailboxId ?? "", query, conversationView].join("\u0000");
     if (prefetchedKey.current === key) return;
     prefetchedKey.current = key;
     router.prefetch(link.href, FULL_ROUTE_PREFETCH);
-    void preloadMailboxPage(link.href, selectedMailbox?.id, { query, grouped: conversationView })
+    void preloadMailboxPage(link.href, listMailboxId, { query, grouped: conversationView })
       .catch(() => { prefetchedKey.current = null; });
   }
 

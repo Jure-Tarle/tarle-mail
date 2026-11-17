@@ -105,6 +105,8 @@ export type MailboxCount = {
 	total: number;
 	unread: number;
 	inbox: number;
+	/** Unread messages in this mailbox's inbox. */
+	inboxUnread: number;
 };
 
 export type MessageCounts = {

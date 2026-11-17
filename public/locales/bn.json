@@ -12,6 +12,8 @@
 	"navigation.trash": "ট্র্যাশ",
 	"navigation.more": "আরও...",
 	"navigation.less": "কম দেখান...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "ফোল্ডার",
 	"navigation.noFolders": "এখনও কোনো ফোল্ডার নেই",
 	"navigation.createFolder": "ফোল্ডার তৈরি করুন",

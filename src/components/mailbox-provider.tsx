@@ -44,7 +44,14 @@ type MailboxContextValue = {
 	setSelectedMailbox: (mb: MailboxOption | null) => void;
 	mailboxes: MailboxOption[];
 	isLoading: boolean;
+	/** Lists show mail from every accessible mailbox at once. Only true when there is more than one mailbox. */
+	showAllMailboxes: boolean;
+	setShowAllMailboxes: (showAll: boolean) => void;
+	/** The mailbox lists and counters filter by: the selected one, or undefined for all of them. */
+	listMailboxId: string | undefined;
 };
+
+const SHOW_ALL_MAILBOXES_STORAGE_KEY = "tarle-mail:show-all-mailboxes";
 
 const MailboxContext = createContext<MailboxContextValue | null>(null);
 
@@ -58,6 +65,7 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 	const [mailboxes, setMailboxes] = useState<MailboxOption[]>([]);
 	const [selectedMailbox, setSelectedMailboxState] = useState<MailboxOption | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [showAllChoice, setShowAllChoice] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -67,6 +75,11 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 			.then((items) => {
 				if (cancelled || sessionToken !== getClientSessionToken()) return;
 				setMailboxes(items);
+				try {
+					setShowAllChoice(localStorage.getItem(SHOW_ALL_MAILBOXES_STORAGE_KEY) === "1");
+				} catch {
+					// Storage can be unavailable (private mode); the choice then lasts for the session.
+				}
 
 				const storedId = localStorage.getItem(SELECTED_MAILBOX_STORAGE_KEY);
 				if (storedId) {
@@ -138,6 +151,12 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 
 	const setSelectedMailbox = useCallback((mb: MailboxOption | null) => {
 		setSelectedMailboxState((current) => (current?.id === mb?.id ? current : mb));
+		setShowAllChoice(false);
+		try {
+			localStorage.removeItem(SHOW_ALL_MAILBOXES_STORAGE_KEY);
+		} catch {
+			// See above.
+		}
 		if (mb) {
 			setMailboxes((items) => items.map((item) => (item.id === mb.id && item !== mb ? mb : item)));
 			localStorage.setItem(SELECTED_MAILBOX_STORAGE_KEY, mb.id);
@@ -146,8 +165,20 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 		}
 	}, []);
 
+	const setShowAllMailboxes = useCallback((showAll: boolean) => {
+		setShowAllChoice(showAll);
+		try {
+			if (showAll) localStorage.setItem(SHOW_ALL_MAILBOXES_STORAGE_KEY, "1");
+			else localStorage.removeItem(SHOW_ALL_MAILBOXES_STORAGE_KEY);
+		} catch {
+			// See above.
+		}
+	}, []);
+	const showAllMailboxes = showAllChoice && mailboxes.length > 1;
+	const listMailboxId = showAllMailboxes ? undefined : selectedMailbox?.id;
+
 	return (
-		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading }}>
+		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading, showAllMailboxes, setShowAllMailboxes, listMailboxId }}>
 			{children}
 		</MailboxContext.Provider>
 	);

@@ -4,6 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 const mobileQuery = "(max-width: 767px)";
 const desktopQuery = "(min-width: 1024px)";
+const wideQuery = "(min-width: 1280px)";
 
 function useMediaQuery(query: string): boolean {
 	const subscribe = useCallback((onChange: () => void) => {
@@ -26,4 +27,9 @@ export function useIsMobile(): boolean {
 /** Whether the split message list is actually rendered beside the reader. */
 export function useIsDesktop(): boolean {
 	return useMediaQuery(desktopQuery);
+}
+
+/** Wide enough for the message list beside a docked composer that still has room to write. */
+export function useIsWide(): boolean {
+	return useMediaQuery(wideQuery);
 }

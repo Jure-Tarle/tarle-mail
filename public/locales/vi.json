@@ -12,6 +12,8 @@
 	"navigation.trash": "Thùng rác",
 	"navigation.more": "Thêm...",
 	"navigation.less": "Thu gọn...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Thư mục",
 	"navigation.noFolders": "Chưa có thư mục nào",
 	"navigation.createFolder": "Tạo thư mục",

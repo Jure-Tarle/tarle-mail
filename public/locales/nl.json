@@ -12,6 +12,8 @@
 	"navigation.trash": "Prullenbak",
 	"navigation.more": "Meer...",
 	"navigation.less": "Minder tonen...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Mappen",
 	"navigation.noFolders": "Nog geen mappen",
 	"navigation.createFolder": "Map maken",

@@ -12,6 +12,8 @@
 	"navigation.trash": "Corbeille",
 	"navigation.more": "Plus...",
 	"navigation.less": "Afficher moins...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Dossiers",
 	"navigation.noFolders": "Aucun dossier pour le moment",
 	"navigation.createFolder": "Créer un dossier",

@@ -12,6 +12,8 @@
 	"navigation.trash": "Trash",
 	"navigation.more": "More...",
 	"navigation.less": "Show less...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Folders",
 	"navigation.noFolders": "No folders yet",
 	"navigation.createFolder": "Create folder",

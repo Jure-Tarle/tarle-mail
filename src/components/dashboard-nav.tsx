@@ -49,6 +49,7 @@ import {
   moveMessagesToCustomFolder,
   moveMessagesToSystemFolder,
 } from "./dashboard-nav-utils";
+import { MailboxesNavSection } from "./mailboxes-nav-section";
 import { NavSectionHeader, useSectionOpen } from "./nav-section-header";
 import { ReorderableList } from "./reorderable-list";
 import { readStorage, writeStorage } from "./reorderable-list-utils";
@@ -111,8 +112,8 @@ export function DashboardNav({ className }: { className?: string }) {
   const moreOpen = moreOpenChoice ?? (hydrated && readStorage(MORE_OPEN_KEY, false));
   const foldersOpen = foldersOpenChoice ?? (hydrated && readStorage(FOLDERS_OPEN_KEY, false));
   const [foldersSectionOpen, toggleFoldersSection] = useSectionOpen("tarle-mail:nav:folders-section-open");
-  const { selectedMailbox, isLoading } = useSelectedMailbox();
-  const { counts } = useMessageCounts(selectedMailbox?.id, !isLoading);
+  const { selectedMailbox, listMailboxId, isLoading } = useSelectedMailbox();
+  const { counts } = useMessageCounts(listMailboxId, !isLoading);
   const [folders, setFolders] = useState<CustomFolder[]>([]);
   const [foldersMailboxId, setFoldersMailboxId] = useState(selectedMailbox?.id);
   if (foldersMailboxId !== selectedMailbox?.id) {
@@ -259,6 +260,7 @@ export function DashboardNav({ className }: { className?: string }) {
         ]}
       />
       {minimal && <hr className="mx-6 my-2 border-neutral-200/70" />}
+      {!minimal && <MailboxesNavSection />}
       {!minimal && (
         <NavSectionHeader label={t("navigation.folders")} open={foldersSectionOpen} onToggle={toggleFoldersSection}>
           {selectedMailbox && (

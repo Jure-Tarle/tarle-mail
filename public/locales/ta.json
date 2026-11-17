@@ -12,6 +12,8 @@
 	"navigation.trash": "குப்பை",
 	"navigation.more": "மேலும்...",
 	"navigation.less": "குறைவாகக் காட்டு...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "கோப்புறைகள்",
 	"navigation.noFolders": "இன்னும் கோப்புறைகள் இல்லை",
 	"navigation.createFolder": "கோப்புறையை உருவாக்கு",

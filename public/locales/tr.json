@@ -11,6 +11,8 @@
 	"navigation.trash": "Çöp kutusu",
 	"navigation.more": "Daha fazla...",
 	"navigation.less": "Daha az göster...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Klasörler",
 	"navigation.noFolders": "Henüz klasör yok",
 	"navigation.createFolder": "Klasör oluştur",

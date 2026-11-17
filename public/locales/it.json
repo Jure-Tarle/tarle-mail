@@ -12,6 +12,8 @@
 	"navigation.trash": "Cestino",
 	"navigation.more": "Altro...",
 	"navigation.less": "Mostra meno...",
+	"navigation.mailboxes": "Mailboxes",
+	"navigation.allMailboxes": "All mailboxes",
 	"navigation.folders": "Cartelle",
 	"navigation.noFolders": "Ancora nessuna cartella",
 	"navigation.createFolder": "Crea cartella",
