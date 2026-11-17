@@ -1,73 +1,31 @@
 import { and, desc, eq, gte, lt, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { domains, driveItems, messageAttachments, messages, outboundJobs } from "@/db/schema";
+import { domains, mailboxes, messages, outboundJobs, providerUsage, users } from "@/db/schema";
 import { getAwsConfig } from "@/lib/aws/config";
 import { awsJson } from "@/lib/aws/client";
-import { getWorkerInvocationHours, getZoneAccountId } from "@/lib/cloudflare-api-analytics";
-import { getEmailWorkerName } from "@/lib/cloudflare-api-utils";
 import { isManualZone } from "@/lib/domains/provision";
+import { getStorageUsageByUser } from "@/lib/mailboxes/storage-usage";
 import { getProviderLimits } from "@/lib/providers/quota";
-import { hasCloudflareCredentials } from "@/lib/runtime";
 import { recentZonedDays } from "@/lib/time/utils";
-import {
-	classifyFlow,
-	fillDailyFlow,
-	foldWorkerHours,
-	tallyProviders,
-	utcWindows,
-	type DailyFlow,
-	type FlowCountRow,
-	type FlowStatus,
-	type ProviderUsage,
-	type SendingProviderId,
-	type WorkerDay,
-} from "@/lib/usage/aggregate";
+import { classifyFlow, fillDailyFlow, foldUserFlow, PROVIDER_LIMITS, type FlowCountRow, type SendingProviderId } from "@/lib/usage/aggregate";
+import { readCloudflareMetrics } from "@/lib/usage/cloudflare-metrics";
+import { billingPeriod, splitCosts, utcDayKey } from "@/lib/usage/forecast";
+import { buildMeters, type ProviderReading } from "@/lib/usage/meters";
+import { getUsageSettings } from "@/lib/usage/settings";
+import type { Optional, UsageOverview, UserUsage } from "@/lib/usage/types";
+
+export type { UsageOverview } from "@/lib/usage/types";
 
 const FLOW_LOG_SIZE = 50;
 
-/** Cloudflare's published D1 limit per database on the Free plan; the Paid plan allows far more. */
-export const D1_FREE_LIMIT_BYTES = 500 * 1024 * 1024;
-
-export type FlowEvent = { id: string; createdAt: string; direction: "inbound" | "outbound"; status: FlowStatus; from: string; to: string; detail: string | null };
-
-/** A figure that may be unavailable: why, rather than a silent gap, when it is. */
-export type Optional<T> = { available: true; value: T } | { available: false; reason: string };
-
-export type UsageOverview = {
-	timeZone: string;
-	daily: DailyFlow[];
-	totals: { received: number; spam: number; sent: number; failed: number };
-	providers: ProviderUsage[];
-	flow: FlowEvent[];
-	database: Optional<{ bytes: number; freeLimitBytes: number }>;
-	storage: { attachmentBytes: number; driveBytes: number };
-	worker: Optional<{ days: WorkerDay[]; requests: number; errors: number }>;
-};
-
-const failure = (error: unknown, fallback: string): { available: false; reason: string } => ({ available: false, reason: error instanceof Error ? error.message : fallback });
-
 /** D1 reports the database's size with every result; other databases report nothing. */
-async function readDatabaseSize(env: CloudflareEnv): Promise<UsageOverview["database"]> {
+async function readDatabaseSize(env: CloudflareEnv): Promise<Optional<{ bytes: number }>> {
 	try {
 		const result = await env.DB.prepare("SELECT 1").run();
 		const bytes = Number(result.meta?.size_after);
-		return bytes > 0 ? { available: true, value: { bytes, freeLimitBytes: D1_FREE_LIMIT_BYTES } } : { available: false, reason: "This database does not report its size." };
+		return bytes > 0 ? { available: true, value: { bytes } } : { available: false, reason: "This database does not report its size." };
 	} catch (error) {
-		return failure(error, "Could not read the database size");
-	}
-}
-
-async function readWorkerStats(env: CloudflareEnv, zoneId: string | undefined, now: Date): Promise<UsageOverview["worker"]> {
-	if (!hasCloudflareCredentials(env)) return { available: false, reason: "Cloudflare API credentials are not configured." };
-	if (!zoneId) return { available: false, reason: "No domain is on a Cloudflare zone, so the account cannot be identified." };
-	try {
-		const accountId = await getZoneAccountId(env, zoneId);
-		if (!accountId) return { available: false, reason: "Cloudflare did not report the account for this zone." };
-		const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-		const days = foldWorkerHours(await getWorkerInvocationHours(env, accountId, getEmailWorkerName(), since, now));
-		return { available: true, value: { days, requests: days.reduce((sum, day) => sum + day.requests, 0), errors: days.reduce((sum, day) => sum + day.errors, 0) } };
-	} catch (error) {
-		return failure(error, "Cloudflare analytics are not available to this token (it needs Account Analytics read).");
+		return { available: false, reason: error instanceof Error ? error.message : "Could not read the database size" };
 	}
 }
 
@@ -91,22 +49,29 @@ export async function getUsageOverview(env: CloudflareEnv, timeZone: string, now
 	const windowEnd = days[days.length - 1].end;
 	// Each boundary uses the offset on that date, including daylight-saving changes.
 	const day = sql<string>`CASE ${sql.join(days.map((item) => sql`WHEN ${messages.createdAt} < ${item.end.getTime() / 1000} THEN ${item.date}`), sql` `)} END`;
-	const { dayStart, monthStart } = utcWindows(now);
 
-	const [dailyRows, senderRows, domainRows, flowRows, attachmentRows, driveRows] = await Promise.all([
+	const { billingDay } = await getUsageSettings(env.BUCKET);
+	const period = billingPeriod(now, billingDay);
+	const monthPeriod = billingPeriod(now, 1);
+	const todayKey = utcDayKey(now);
+	// Provider counters are kept per UTC day; the billing period and the calendar month each need their own slice.
+	const counterSince = utcDayKey(period.start < monthPeriod.start ? period.start : monthPeriod.start);
+	const periodSince = utcDayKey(period.start);
+	const monthSince = utcDayKey(monthPeriod.start);
+	const inWindow = and(gte(messages.createdAt, windowStart), lt(messages.createdAt, windowEnd), ne(messages.status, "draft"));
+
+	const [dailyRows, userRows, domainRows, flowRows, counterRows, userList, mailboxRows, storageByUser] = await Promise.all([
 		db.select({ date: day.as("date"), direction: messages.direction, status: messages.status, count: sql<number>`count(*)` })
 			.from(messages)
-			.where(and(gte(messages.createdAt, windowStart), lt(messages.createdAt, windowEnd), ne(messages.status, "draft")))
+			.where(inWindow)
 			.groupBy(sql`1`, messages.direction, messages.status),
-		db.select({
-			fromAddr: messages.fromAddr,
-			today: sql<number>`coalesce(sum(CASE WHEN ${messages.createdAt} >= ${dayStart.getTime() / 1000} THEN 1 ELSE 0 END), 0)`,
-			month: sql<number>`count(*)`,
-		})
+		// Mail counts toward the mailbox owner, like storage; mail whose mailbox is gone stays with the user it was stored for.
+		db.select({ userId: sql<string>`coalesce(${mailboxes.userId}, ${messages.userId})`, direction: messages.direction, status: messages.status, count: sql<number>`count(*)` })
 			.from(messages)
-			.where(and(eq(messages.direction, "outbound"), eq(messages.status, "sent"), gte(messages.createdAt, monthStart)))
-			.groupBy(messages.fromAddr),
-		db.select({ hostname: domains.hostname, sendingProvider: domains.sendingProvider, zoneId: domains.zoneId }).from(domains),
+			.leftJoin(mailboxes, eq(messages.mailboxId, mailboxes.id))
+			.where(inWindow)
+			.groupBy(sql`1`, messages.direction, messages.status),
+		db.select({ sendingProvider: domains.sendingProvider, zoneId: domains.zoneId }).from(domains),
 		db.select({
 			id: messages.id,
 			createdAt: messages.createdAt,
@@ -121,37 +86,70 @@ export async function getUsageOverview(env: CloudflareEnv, timeZone: string, now
 			.where(ne(messages.status, "draft"))
 			.orderBy(desc(messages.createdAt), desc(messages.id))
 			.limit(FLOW_LOG_SIZE),
-		db.select({ bytes: sql<number>`coalesce(sum(${messageAttachments.size}), 0)` }).from(messageAttachments),
-		db.select({ bytes: sql<number>`coalesce(sum(${driveItems.size}), 0)` }).from(driveItems).where(eq(driveItems.kind, "file")),
+		db.select({ provider: providerUsage.provider, day: providerUsage.day, count: providerUsage.count }).from(providerUsage).where(gte(providerUsage.day, counterSince)),
+		db.select({ id: users.id, name: users.name, email: users.email, role: users.role }).from(users),
+		db.select({ userId: mailboxes.userId, type: mailboxes.type, count: sql<number>`count(*)` }).from(mailboxes).groupBy(mailboxes.userId, mailboxes.type),
+		getStorageUsageByUser(env),
 	]);
 
 	const daily = fillDailyFlow(days.map((item) => item.date), dailyRows as FlowCountRow[]);
 	const totals = daily.reduce((sum, item) => ({ received: sum.received + item.received, spam: sum.spam + item.spam, sent: sum.sent + item.sent, failed: sum.failed + item.failed }), { received: 0, spam: 0, sent: 0, failed: 0 });
 
-	const providerByHost = new Map<string, SendingProviderId>(domainRows.map((row) => [row.hostname.toLowerCase(), row.sendingProvider]));
-	const providers = tallyProviders(senderRows, providerByHost);
-	const configuredLimits = await getProviderLimits(env);
-	for (const item of providers) {
-		const configured = item.provider === "unmapped" || item.provider === "none" ? undefined : configuredLimits[item.provider];
-		if (configured?.daily) item.limits.perDay = configured.daily;
-		if (configured?.monthly) item.limits.perMonth = configured.monthly;
-	}
-	const ses = providers.find((item) => item.provider === "ses");
-	if (ses) {
-		const quota = await readSesQuota(env);
-		if (quota) ses.limits.perDay = quota.max;
-	}
+	// Recipients sent per provider, from the counters that also enforce the limits.
+	const sentBy = (provider: string, since: string) => counterRows.filter((row) => row.provider === provider && row.day >= since).reduce((sum, row) => sum + row.count, 0);
+	const emailSent = counterRows.filter((row) => row.provider === "cloudflare" && row.day >= periodSince && row.day < utcDayKey(period.end)).reduce((sum, row) => sum + row.count, 0);
 
-	const [database, worker] = await Promise.all([
+	const configuredLimits = await getProviderLimits(env);
+	const providerIds = [...new Set(domainRows.map((row) => row.sendingProvider))].filter((id): id is Exclude<SendingProviderId, "none" | "cloudflare"> => id !== "none" && id !== "cloudflare");
+	const sesQuota = providerIds.includes("ses") ? await readSesQuota(env) : null;
+	const providers: ProviderReading[] = providerIds.map((id) => ({
+		provider: id,
+		label: PROVIDER_LIMITS[id].label,
+		today: sentBy(id, todayKey),
+		month: sentBy(id, monthSince),
+		perDay: (id === "ses" ? sesQuota?.max : undefined) ?? configuredLimits[id]?.daily ?? PROVIDER_LIMITS[id].perDay ?? null,
+		perMonth: configuredLimits[id]?.monthly ?? PROVIDER_LIMITS[id].perMonth ?? null,
+	}));
+
+	const [database, cloudflare] = await Promise.all([
 		readDatabaseSize(env),
-		readWorkerStats(env, domainRows.find((row) => !isManualZone(row.zoneId))?.zoneId, now),
+		readCloudflareMetrics(env, domainRows.find((row) => !isManualZone(row.zoneId))?.zoneId, period, now),
 	]);
+	const { meters, forecast, services } = buildMeters({ database, cloudflare, emailSent, providers }, period, monthPeriod);
+
+	const flowByUser = foldUserFlow(userRows);
+	const mailboxCount = (userId: string, shared?: boolean) => mailboxRows.filter((row) => row.userId === userId && (shared === undefined || (row.type === "shared") === shared)).reduce((sum, row) => sum + Number(row.count), 0);
+	const rows = userList.map((user) => {
+		const flow = flowByUser.get(user.id) ?? { received: 0, spam: 0, sent: 0, failed: 0 };
+		const stored = storageByUser.get(user.id);
+		return { user, flow, storageBytes: (stored?.mailBytes ?? 0) + (stored?.driveBytes ?? 0) };
+	});
+	const meterCost = (id: string) => forecast.lines.find((line) => line.id === id)?.cost ?? 0;
+	const shares = splitCosts(rows.map((row) => ({ id: row.user.id, sent: row.flow.sent, storageBytes: row.storageBytes })), meterCost("emailSending"), meterCost("d1Storage") + meterCost("r2Storage"));
+	const userUsage: UserUsage[] = rows
+		.map(({ user, flow, storageBytes }) => ({
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			role: user.role,
+			mailboxes: mailboxCount(user.id),
+			sharedMailboxes: mailboxCount(user.id, true),
+			...flow,
+			storageBytes,
+			sendShare: shares.get(user.id)?.sendShare ?? 0,
+			cost: shares.get(user.id)?.cost ?? 0,
+		}))
+		.sort((a, b) => b.sent + b.received - (a.sent + a.received) || a.name.localeCompare(b.name));
 
 	return {
 		timeZone,
+		billing: { day: billingDay, start: period.start.toISOString(), end: period.end.toISOString(), days: period.days, elapsedDays: period.elapsedDays },
 		daily,
 		totals,
-		providers,
+		meters,
+		forecast,
+		services,
+		users: userUsage,
 		flow: flowRows.map((row) => ({
 			id: row.id,
 			createdAt: row.createdAt.toISOString(),
@@ -161,8 +159,5 @@ export async function getUsageOverview(env: CloudflareEnv, timeZone: string, now
 			to: row.toAddr,
 			detail: row.error ? row.error.slice(0, 200) : null,
 		})),
-		database,
-		storage: { attachmentBytes: Number(attachmentRows[0]?.bytes) || 0, driveBytes: Number(driveRows[0]?.bytes) || 0 },
-		worker,
 	};
 }

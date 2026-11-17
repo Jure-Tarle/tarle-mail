@@ -1,0 +1,29 @@
+/* The admin layout caps pages at max-w-3xl; this page needs the full content width. */
+#main-content > div:has(> .usage-page) {
+	max-width: none;
+}
+
+/* Colours the dark theme's palette remap does not cover: meter levels, tracks and the "text" variants that keep small text readable on white. */
+.usage-page {
+	--u-blue: #2563eb;
+	--u-amber: #d97706;
+	--u-red: #dc2626;
+	--u-green: #16a34a;
+	--u-amber-text: #b45309;
+	--u-green-text: #15803d;
+	--u-muted: #6b6b6b;
+	--u-track: #eef2f7;
+	--u-line: #e7eaf0;
+}
+
+.dark .usage-page {
+	--u-blue: #60a5fa;
+	--u-amber: #fbbf24;
+	--u-red: #f87171;
+	--u-green: #4ade80;
+	--u-amber-text: #fbbf24;
+	--u-green-text: #4ade80;
+	--u-muted: #a8aeb4;
+	--u-track: #3c4043;
+	--u-line: #3c4043;
+}

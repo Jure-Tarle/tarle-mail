@@ -1,27 +1,22 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ForecastPanel, MeterList } from "./MeterPanel";
+import { ServiceCards } from "./ServiceCards";
 import type { UsageResponse } from "./types";
-import { fetchUsage, flowStatusClass, formatBytes, formatCount, formatDayLabel, formatFlowDate, usageBar } from "./utils";
+import { UserTable } from "./UserTable";
+import { fetchUsage, flowStatusClass, formatCount, formatDayLabel, formatDecimal, formatFlowDate, periodDayKey, saveBillingDay } from "./utils";
+import "./usage.css";
 
-function Bar({ used, limit }: { used: number; limit: number | null }) {
-	const bar = usageBar(used, limit);
-	if (!bar) return null;
-	return (
-		<div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100" role="presentation">
-			<div className={`h-full rounded-full ${bar.className}`} style={{ width: `${bar.percent}%` }} />
-		</div>
-	);
-}
-
-function Tile({ label, value }: { label: string; value: string }) {
+function Tile({ label, value, average, dot }: { label: string; value: string; average: string; dot: string }) {
 	return (
 		<section className="rounded-2xl bg-white p-5">
-			<p className="text-sm text-neutral-500">{label}</p>
-			<p className="mt-2 text-2xl font-semibold text-neutral-900">{value}</p>
+			<p className="flex items-center gap-2 text-sm text-neutral-500"><span aria-hidden="true" className={`inline-block h-2.5 w-2.5 rounded-full ${dot}`} />{label}</p>
+			<p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-neutral-900">{value}</p>
+			<p className="mt-1 text-xs tabular-nums text-neutral-500">{average}</p>
 		</section>
 	);
 }
@@ -36,7 +31,7 @@ function MailChart({ daily, timeZone }: Pick<UsageResponse, "daily" | "timeZone"
 					<h2 className="text-base font-semibold text-neutral-900">{t("usage.byDay")}</h2>
 					<p className="mt-1 text-xs text-neutral-500">{t("usage.chartHint", { zone: timeZone })}</p>
 				</div>
-				<div className="flex items-center gap-4 text-xs text-neutral-600">
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-600">
 					<span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-blue-600" /> {t("usage.legendReceived")}</span>
 					<span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" /> {t("usage.legendSent")}</span>
 					<span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> {t("usage.legendSpam")}</span>
@@ -66,87 +61,66 @@ function MailChart({ daily, timeZone }: Pick<UsageResponse, "daily" | "timeZone"
 	);
 }
 
+function BillingDay({ day }: { day: number }) {
+	const { t } = useLanguage();
+	const queryClient = useQueryClient();
+	const save = useMutation({ mutationFn: saveBillingDay, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["usage"] }) });
+	return (
+		<div className="shrink-0">
+			<label className="flex items-center gap-2 text-sm text-neutral-600" title={t("usage.billingDayHint")}>
+				{t("usage.billingDay")}
+				<select
+					value={day}
+					disabled={save.isPending}
+					onChange={(event) => save.mutate(Number(event.target.value))}
+					className="rounded-lg bg-neutral-100 px-2 py-1 text-sm tabular-nums text-neutral-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+				>
+					{Array.from({ length: 28 }, (_, index) => index + 1).map((value) => <option key={value} value={value}>{value}</option>)}
+				</select>
+			</label>
+			{save.error && <p role="alert" className="mt-1 text-xs text-red-700">{save.error instanceof Error ? save.error.message : t("usage.saveFailed")}</p>}
+		</div>
+	);
+}
+
+const tileDots = { received: "bg-blue-600", sent: "bg-emerald-500", spam: "bg-amber-400", failed: "bg-red-500" } as const;
+
 export default function UsagePage() {
 	const { t } = useLanguage();
 	const usage = useQuery({ queryKey: ["usage"], queryFn: fetchUsage });
 	const data = usage.data;
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl md:text-3xl font-medium text-neutral-900">{t("usage.title")}</h1>
-				<p className="mt-2 text-sm text-neutral-500">{t("usage.description")}</p>
+		<div className="usage-page space-y-6">
+			<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+				<div className="min-w-0">
+					<h1 className="text-2xl md:text-3xl font-medium text-neutral-900">{t("usage.title")}</h1>
+					<p className="mt-2 text-sm text-neutral-500">{t("usage.description")}</p>
+					{data && (
+						<p className="mt-1 text-sm tabular-nums text-neutral-500">
+							{t("usage.period", { start: formatDayLabel(data.billing.start.slice(0, 10)), end: formatDayLabel(periodDayKey(data.billing.start, data.billing.days)), day: Math.ceil(data.billing.elapsedDays), days: data.billing.days })}
+						</p>
+					)}
+				</div>
+				{data && <BillingDay day={data.billing.day} />}
 			</div>
 			{usage.error && <p role="alert" className="text-sm text-red-700">{usage.error instanceof Error ? usage.error.message : t("usage.loadFailed")}</p>}
 			{usage.isLoading && <Skeleton className="h-48 w-full rounded-2xl" />}
 			{data && (
 				<>
-					<div className="grid gap-4 sm:grid-cols-4">
-						<Tile label={t("usage.received")} value={formatCount(data.totals.received)} />
-						<Tile label={t("usage.sent")} value={formatCount(data.totals.sent)} />
-						<Tile label={t("usage.spam")} value={formatCount(data.totals.spam)} />
-						<Tile label={t("usage.failed")} value={formatCount(data.totals.failed)} />
+					<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+						{([["received", "usage.received"], ["sent", "usage.sent"], ["spam", "usage.spam"], ["failed", "usage.failed"]] as const).map(([key, label]) => (
+							<Tile key={key} label={t(label)} value={formatCount(data.totals[key])} average={t("usage.perDay", { value: formatDecimal(data.totals[key] / data.daily.length) })} dot={tileDots[key]} />
+						))}
 					</div>
+
+					<div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+						<MeterList meters={data.meters} />
+						<ForecastPanel data={data} />
+					</div>
+
+					<ServiceCards data={data} />
 					<MailChart daily={data.daily} timeZone={data.timeZone} />
-
-					<section className="rounded-2xl bg-white p-5">
-						<h2 className="text-base font-semibold text-neutral-900">{t("usage.providers")}</h2>
-						<p className="mt-1 text-xs text-neutral-500">{t("usage.providersHint")}</p>
-						{data.providers.length === 0 && <p className="mt-3 text-sm text-neutral-500">{t("usage.noProviders")}</p>}
-						<ul className="mt-3 divide-y divide-neutral-100">
-							{data.providers.map((provider) => (
-								<li key={provider.provider} className="grid gap-3 py-3 sm:grid-cols-2">
-									<div className="min-w-0">
-										<p className="font-medium text-neutral-900">{provider.label}</p>
-										{provider.hosts.length > 0 && <p className="break-words text-xs text-neutral-500">{provider.hosts.join(", ")}</p>}
-									</div>
-									<div className="grid gap-2 text-sm">
-										<div>
-											<p className="flex justify-between"><span className="text-neutral-500">{t("usage.today")}</span><span className="tabular-nums">{formatCount(provider.today)}{provider.limits.perDay ? ` / ${formatCount(provider.limits.perDay)}` : ""}</span></p>
-											<Bar used={provider.today} limit={provider.limits.perDay} />
-										</div>
-										<div>
-											<p className="flex justify-between"><span className="text-neutral-500">{t("usage.thisMonth")}</span><span className="tabular-nums">{formatCount(provider.month)}{provider.limits.perMonth ? ` / ${formatCount(provider.limits.perMonth)}` : ""}</span></p>
-											<Bar used={provider.month} limit={provider.limits.perMonth} />
-										</div>
-										{!provider.limits.perDay && !provider.limits.perMonth && <p className="text-xs text-neutral-500">{t("usage.noLimit")}</p>}
-									</div>
-								</li>
-							))}
-						</ul>
-					</section>
-
-					<section className="rounded-2xl bg-white p-5">
-						<h2 className="text-base font-semibold text-neutral-900">{t("usage.resources")}</h2>
-						<dl className="mt-3 grid gap-4 text-sm sm:grid-cols-3">
-							<div>
-								<dt className="text-neutral-500">{t("usage.database")}</dt>
-								{data.database.available ? (
-									<dd>
-										<span className="text-lg font-semibold text-neutral-900">{formatBytes(data.database.value.bytes)}</span>
-										<Bar used={data.database.value.bytes} limit={data.database.value.freeLimitBytes} />
-										<span className="mt-1 block text-xs text-neutral-500">{t("usage.databaseLimit", { limit: formatBytes(data.database.value.freeLimitBytes) })}</span>
-									</dd>
-								) : <dd className="text-xs text-neutral-500">{t("usage.unavailable", { reason: data.database.reason })}</dd>}
-							</div>
-							<div>
-								<dt className="text-neutral-500">{t("usage.storage")}</dt>
-								<dd>
-									<span className="text-lg font-semibold text-neutral-900">{formatBytes(data.storage.attachmentBytes + data.storage.driveBytes)}</span>
-									<span className="mt-1 block text-xs text-neutral-500">{t("usage.storageSplit", { attachments: formatBytes(data.storage.attachmentBytes), drive: formatBytes(data.storage.driveBytes) })}</span>
-								</dd>
-							</div>
-							<div>
-								<dt className="text-neutral-500">{t("usage.worker")}</dt>
-								{data.worker.available ? (
-									<dd>
-										<span className="text-lg font-semibold text-neutral-900">{formatCount(data.worker.value.requests)}</span>
-										<span className="mt-1 block text-xs text-neutral-500">{t("usage.workerErrors", { errors: formatCount(data.worker.value.errors) })}</span>
-									</dd>
-								) : <dd className="text-xs text-neutral-500">{t("usage.unavailable", { reason: data.worker.reason })}</dd>}
-							</div>
-						</dl>
-					</section>
 
 					<section role="region" tabIndex={0} aria-label={t("usage.flow")} className="overflow-x-auto rounded-2xl bg-white">
 						<div className="px-5 pt-5"><h2 className="text-base font-semibold text-neutral-900">{t("usage.flow")}</h2><p className="mt-1 text-xs text-neutral-500">{t("usage.flowHint")}</p></div>
@@ -177,6 +151,8 @@ export default function UsagePage() {
 							</tbody>
 						</table>
 					</section>
+
+					<UserTable users={data.users} />
 					<p className="text-xs text-neutral-500">{t("usage.note")}</p>
 				</>
 			)}
