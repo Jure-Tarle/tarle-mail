@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { agentApiKeys, appSettings } from "@/db/schema";
 import { isMissingTableError } from "@/lib/database-errors";
 import { newId } from "@/lib/ids";
-import { isEncryptedSecret, openSecret, sealSecret } from "@/lib/crypto/secret-box";
+import { isEncryptedSecret, isSecretEncryptionEnabled, openSecret, sealSecret } from "@/lib/crypto/secret-box";
 import { orderAgentKeysForUse, type ProviderKeyFailure } from "./api-key-failover";
 import { AGENT_SETTINGS_ID } from "./provider-constants";
 
@@ -57,7 +57,12 @@ export async function getAgentKeysForUse(env: CloudflareEnv, baseUrl: string): P
 	const keys: AgentKeyForUse[] = [];
 	for (const row of rows) {
 		const secret = await openSecret(env, row.secret);
-		if (secret) keys.push({ id: row.id, secret });
+		if (!secret) continue;
+		keys.push({ id: row.id, secret });
+		// A key saved before encryption was set up is encrypted the next time it is read.
+		if (isSecretEncryptionEnabled(env) && !isEncryptedSecret(row.secret)) {
+			await getDb(env).update(agentApiKeys).set({ secret: await sealSecret(env, secret) }).where(eq(agentApiKeys.id, row.id));
+		}
 	}
 	return keys;
 }
