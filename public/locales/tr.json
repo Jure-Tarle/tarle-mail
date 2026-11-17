@@ -23,6 +23,8 @@
 	"navigation.expandMenu": "Menüyü genişlet",
 	"navigation.collapseMenu": "Menüyü daralt",
 	"navigation.openMenu": "Menüyü aç",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Kapat",
 	"navigation.shortcuts": "Kısayollar",
 	"navigation.poweredBy": "Sağlayan:",

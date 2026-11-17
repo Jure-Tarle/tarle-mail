@@ -10,6 +10,7 @@ import { MailSearchInput } from "@/components/mail-search/mail-search-input";
 import { MailSearchProvider } from "@/components/mail-search/mail-search-context";
 import { MailboxProvider } from "@/components/mailbox-provider";
 import { MailboxSelector } from "@/components/mailbox-selector";
+import { ModeSwitch } from "@/components/mode-switch";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { SidebarProvider } from "@/components/sidebar-state";
 import { ShortcutsProvider } from "@/components/shortcuts";
@@ -38,6 +39,7 @@ export default function DashboardLayout({
                   <div className="flex min-h-0 min-w-0 flex-col">
                     <header className="flex h-16 w-full shrink-0 items-center gap-4 pr-4 text-sm">
                       <MobileMenuButton className="ml-2" />
+                      <ModeSwitch className="max-md:hidden" />
                       <MailSearchInput />
                       <CommandPaletteButton className="sm:hidden" />
                       {/* <Link

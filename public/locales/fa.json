@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "باز کردن منو",
 	"navigation.collapseMenu": "جمع کردن منو",
 	"navigation.openMenu": "باز کردن منو",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "بستن",
 	"navigation.shortcuts": "میانبرها",
 	"navigation.poweredBy": "قدرت‌گرفته از",

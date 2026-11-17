@@ -9,6 +9,7 @@ import { MailboxProvider } from "@/components/mailbox-provider";
 import { MailboxSelector } from "@/components/mailbox-selector";
 import { SidebarAside, MobileMenuButton } from "@/components/sidebar-aside";
 import { SidebarHeader } from "@/components/sidebar-header";
+import { ModeSwitch } from "@/components/mode-switch";
 import { SidebarResizeBoundary } from "@/components/sidebar-resize-boundary";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-state";
 import { ShortcutsProvider } from "@/components/shortcuts";
@@ -32,6 +33,7 @@ function DriveFrame({ children }: { children: React.ReactNode }) {
 			<div className="flex min-h-0 min-w-0 flex-col">
 				<header className="flex h-16 w-full shrink-0 items-center gap-3 pr-4 text-sm">
 					<MobileMenuButton className="ml-2" />
+					<ModeSwitch className="max-md:hidden" />
 					<div id="drive-header-slot" className="flex min-w-0 flex-1 items-center" />
 					<CommandPaletteButton />
 					<MailboxSelector />

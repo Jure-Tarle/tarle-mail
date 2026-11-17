@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "展开菜单",
 	"navigation.collapseMenu": "折叠菜单",
 	"navigation.openMenu": "打开菜单",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "关闭",
 	"navigation.shortcuts": "快捷键",
 	"navigation.poweredBy": "技术支持：",

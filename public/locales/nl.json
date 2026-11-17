@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Menu uitvouwen",
 	"navigation.collapseMenu": "Menu samenvouwen",
 	"navigation.openMenu": "Menu openen",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Sluiten",
 	"navigation.shortcuts": "Sneltoetsen",
 	"navigation.poweredBy": "Mogelijk gemaakt door",

@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Perluas menu",
 	"navigation.collapseMenu": "Ciutkan menu",
 	"navigation.openMenu": "Buka menu",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Tutup",
 	"navigation.shortcuts": "Pintasan",
 	"navigation.poweredBy": "Didukung oleh",

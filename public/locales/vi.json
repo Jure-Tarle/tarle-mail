@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Mở rộng menu",
 	"navigation.collapseMenu": "Thu gọn menu",
 	"navigation.openMenu": "Mở menu",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "Đóng",
 	"navigation.shortcuts": "Phím tắt",
 	"navigation.poweredBy": "Cung cấp bởi",

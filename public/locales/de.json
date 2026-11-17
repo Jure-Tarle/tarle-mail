@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "Menü erweitern",
 	"navigation.collapseMenu": "Menü einklappen",
 	"navigation.openMenu": "Menü öffnen",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Zwischen Mail und Administration wechseln",
 	"navigation.close": "Schließen",
 	"navigation.shortcuts": "Tastenkürzel",
 	"navigation.poweredBy": "Bereitgestellt von",

@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "ขยายเมนู",
 	"navigation.collapseMenu": "ย่อเมนู",
 	"navigation.openMenu": "เปิดเมนู",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "ปิด",
 	"navigation.shortcuts": "ทางลัด",
 	"navigation.poweredBy": "ขับเคลื่อนโดย",

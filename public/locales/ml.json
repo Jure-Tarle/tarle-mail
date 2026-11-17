@@ -24,6 +24,8 @@
 	"navigation.expandMenu": "മെനു വികസിപ്പിക്കുക",
 	"navigation.collapseMenu": "മെനു ചുരുക്കുക",
 	"navigation.openMenu": "മെനു തുറക്കുക",
+	"navigation.modeMail": "Mail",
+	"navigation.modeSwitch": "Switch between Mail and Admin",
 	"navigation.close": "അടയ്ക്കുക",
 	"navigation.shortcuts": "കുറുക്കുവഴികൾ",
 	"navigation.poweredBy": "പ്രവർത്തിപ്പിക്കുന്നത്",
