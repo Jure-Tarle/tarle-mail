@@ -12,8 +12,9 @@ export type MailboxStorage = {
 	canEditLimits: boolean;
 };
 
-export async function fetchMailboxStorage(mailboxId: string): Promise<MailboxStorage> {
-	const response = await authFetch(`/api/mailboxes/${mailboxId}/storage`, { cache: "no-store" });
+/** `detail` measures usage even without a limit (settings card); the banner leaves it off to stay cheap. */
+export async function fetchMailboxStorage(mailboxId: string, options: { detail?: boolean } = {}): Promise<MailboxStorage> {
+	const response = await authFetch(`/api/mailboxes/${mailboxId}/storage${options.detail ? "?detail=1" : ""}`, { cache: "no-store" });
 	const json = (await response.json()) as { storage?: MailboxStorage; error?: string };
 	if (!response.ok || !json.storage) throw new Error(json.error ?? "Failed to load storage usage");
 	return json.storage;

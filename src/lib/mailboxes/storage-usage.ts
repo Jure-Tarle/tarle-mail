@@ -13,7 +13,8 @@ import {
 } from "@/lib/mailboxes/storage-limits";
 
 /** Messages measured per scheduled run; each costs an R2 head request and a database write. */
-export const SIZE_BACKFILL_BATCH = 200;
+/** Rows sized per cron run; each needs an R2 head and a D1 update, so this stays well under the per-invocation subrequest cap. */
+export const SIZE_BACKFILL_BATCH = 40;
 
 /** The admin's default limits for mailboxes without their own; null means unlimited. */
 export async function getDefaultMailboxLimits(env: CloudflareEnv): Promise<MailboxLimits> {
@@ -61,8 +62,12 @@ export type MailboxStorageSummary = {
 	defaults: MailboxLimits;
 };
 
-/** Everything the storage bar, the limit form and the nearly-full banner show. */
-export async function getMailboxStorageSummary(env: CloudflareEnv, mailboxId: string): Promise<MailboxStorageSummary | null> {
+/**
+ * Everything the storage bar, the limit form and the nearly-full banner show. Measuring sums every
+ * message of the mailbox, so without `detail` it is skipped for figures that have no limit (the
+ * banner only needs them when one applies) and those come back as 0.
+ */
+export async function getMailboxStorageSummary(env: CloudflareEnv, mailboxId: string, options: { detail?: boolean } = {}): Promise<MailboxStorageSummary | null> {
 	const [own] = await getDb(env)
 		.select({ storageLimitBytes: mailboxes.storageLimitBytes, dailySendLimit: mailboxes.dailySendLimit })
 		.from(mailboxes)
@@ -71,7 +76,10 @@ export async function getMailboxStorageSummary(env: CloudflareEnv, mailboxId: st
 	if (!own) return null;
 	const defaults = await getDefaultMailboxLimits(env);
 	const limits = resolveMailboxLimits(own, defaults);
-	const [usedBytes, sentToday] = await Promise.all([getMailboxStorageUsed(env, mailboxId), countMessagesSentToday(env, mailboxId)]);
+	const [usedBytes, sentToday] = await Promise.all([
+		options.detail || limits.storageBytes !== null ? getMailboxStorageUsed(env, mailboxId) : 0,
+		options.detail || limits.dailySend !== null ? countMessagesSentToday(env, mailboxId) : 0,
+	]);
 	return { usedBytes, limitBytes: limits.storageBytes, dailySendLimit: limits.dailySend, sentToday, own, defaults };
 }
 

@@ -22,7 +22,7 @@ function parseLimit(value: string): number | null {
 export default function MailboxStorageCard({ mailboxId }: { mailboxId: string }) {
 	const { t } = useLanguage();
 	const qc = useQueryClient();
-	const storage = useQuery({ queryKey: ["mailbox", mailboxId, "storage"], queryFn: () => fetchMailboxStorage(mailboxId), enabled: !!mailboxId });
+	const storage = useQuery({ queryKey: ["mailbox", mailboxId, "storage"], queryFn: () => fetchMailboxStorage(mailboxId, { detail: true }), enabled: !!mailboxId });
 	const [storageGb, setStorageGb] = useState("");
 	const [dailySend, setDailySend] = useState("");
 

@@ -122,6 +122,17 @@ test("inbound mail is refused once the mailbox reaches its limit and never for a
 	assert.equal(await limits.isMailboxFull(env, "open"), true);
 });
 
+test("the summary measures usage only when a limit applies or detail is asked for", async (t) => {
+	const { env, addMailbox, addMessage } = await createFixture(t);
+	addMailbox("open", "alice");
+	addMailbox("capped", "alice", 5000);
+	addMessage("o1", "open", { size: 700 });
+	addMessage("c1", "capped", { size: 900 });
+	assert.equal((await limits.getMailboxStorageSummary(env, "open")).usedBytes, 0, "no limit, no detail: the sum is skipped");
+	assert.equal((await limits.getMailboxStorageSummary(env, "open", { detail: true })).usedBytes, 700);
+	assert.equal((await limits.getMailboxStorageSummary(env, "capped")).usedBytes, 900, "a limit always measures");
+});
+
 test("a failing storage lookup accepts the mail", async (t) => {
 	const { env } = await createFixture(t);
 	const originalError = console.error;

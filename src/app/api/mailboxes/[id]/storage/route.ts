@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: MailboxRouteParams) {
 	const user = await requireUser(env, request);
 	const access = await getMailboxSettingsAccess(env, user, id);
 	if (!access?.canRead) return NextResponse.json({ error: "Mailbox not found" }, { status: 404 });
-	const summary = await getMailboxStorageSummary(env, id);
+	const summary = await getMailboxStorageSummary(env, id, { detail: new URL(request.url).searchParams.get("detail") === "1" });
 	if (!summary) return NextResponse.json({ error: "Mailbox not found" }, { status: 404 });
 	return NextResponse.json({ storage: { ...summary, canEditLimits: user.role === "admin" && access.canManage } }, { headers: { "Cache-Control": "no-store" } });
 }
