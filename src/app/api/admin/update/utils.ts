@@ -82,7 +82,7 @@ async function githubRequest<T>(
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${env.GITHUB_UPDATE_TOKEN || ""}`,
-      "User-Agent": "mailflare",
+      "User-Agent": "tarle-mail",
       "Content-Type": "application/json",
       "X-GitHub-Api-Version": GITHUB_API_VERSION,
       ...init?.headers,

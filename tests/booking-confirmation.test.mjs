@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const dir = mkdtempSync(join(tmpdir(), "mailflare-booking-confirmation-"));
+const dir = mkdtempSync(join(tmpdir(), "tarle-mail-booking-confirmation-"));
 after(() => rmSync(dir, { recursive: true, force: true }));
 await build({
 	entryPoints: { c: join(root, "src/lib/booking/confirmation-utils.ts") },

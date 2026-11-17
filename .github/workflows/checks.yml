@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   checks:
-    # Update Mailflare copies .github/workflows into every installation
+    # Update Tarle Mail copies .github/workflows into every installation
     # repository; this keeps the checks from running (and using Actions
     # minutes) there.
     if: github.repository == 'hieunc229/mailflare'

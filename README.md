@@ -3,7 +3,7 @@
 Self-hosted email, calendar, booking and drive for your own domains, running entirely in your
 Cloudflare account on Workers, D1, R2 and Queues.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Jure-Tarle/mail-tarle)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Jure-Tarle/tarle-mail)
 
 Tarle Mail is a fork of [Mailflare](https://github.com/hieunc229/mailflare) (AGPL-3.0) with every
 Team feature included and no license server, plus features adapted from
@@ -42,7 +42,7 @@ Receiving through Cloudflare Email Routing is free. The app uses Queues and can 
 
 ### With the button
 
-1. Click **Deploy to Cloudflare** above. Keep the Worker name `mail-tarle`; Email Routing rules point to it by that name. Cloudflare creates the D1 database, the R2 bucket and the queues.
+1. Click **Deploy to Cloudflare** above. Keep the Worker name `tarle-mail`; Email Routing rules point to it by that name. Cloudflare creates the D1 database, the R2 bucket and the queues.
 2. When asked for secrets, set **`CLOUDFLARE_TOKEN`**: a Cloudflare API token the app uses to set up Email Routing, DNS and sending for your domains. Create it under **My Profile → API Tokens → Create Custom Token** with:
    - Zone: Zone Read, DNS Edit, Zone Settings Edit, Email Routing Rules Edit
    - Account: Email Routing Addresses Edit, Email Sending Edit, Account Analytics Read (usage page)
@@ -52,14 +52,14 @@ Receiving through Cloudflare Email Routing is free. The app uses Queues and can 
 ### From the command line, on your own domain, behind Cloudflare Access
 
 ```sh
-git clone https://github.com/Jure-Tarle/mail-tarle && cd mail-tarle
+git clone https://github.com/Jure-Tarle/tarle-mail && cd tarle-mail
 npm ci
 npx wrangler login
-npx wrangler d1 create mail-tarle
-npx wrangler r2 bucket create mail-tarle-raw
-npx wrangler queues create mail-tarle-inbound
-npx wrangler queues create mail-tarle-outbound
-npx wrangler queues create mail-tarle-agent
+npx wrangler d1 create tarle-mail
+npx wrangler r2 bucket create tarle-mail-raw
+npx wrangler queues create tarle-mail-inbound
+npx wrangler queues create tarle-mail-outbound
+npx wrangler queues create tarle-mail-agent
 ```
 
 Set up Cloudflare Access first, so the app is never reachable without it. One script creates the Zero Trust team, the email one-time-PIN login, the login application for your domain and the public exceptions, then prints the two values the Worker needs ([details](docs/access.md)):

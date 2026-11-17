@@ -60,7 +60,7 @@ next-env.d.ts
 !.dev.vars.example
 yarn.lock
 wrangler.prod.jsonc
-mailflare-landing
+tarle-mail-landing
 
 .agents
 skills-lock.json

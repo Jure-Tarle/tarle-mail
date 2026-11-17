@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: PublicBookingRouteConte
 	const slot = slots.find((item) => item.startsAt === body.startsAt);
 	if (!slot) return NextResponse.json({ error: "That time is no longer available." }, { status: 409 });
 	if (!(await createBookedCalendarEvents(getEnv(), found.event, name, email, slot.startsAt, slot.endsAt, guestEmails, notes))) return NextResponse.json({ error: "That time is no longer available." }, { status: 409 });
-	const locale = pickGuestLocale(/(?:^|;\s*)mailflare-locale=([^;]+)/.exec(request.headers.get("cookie") ?? "")?.[1], request.headers.get("accept-language"));
+	const locale = pickGuestLocale(/(?:^|;\s*)tarle-mail-locale=([^;]+)/.exec(request.headers.get("cookie") ?? "")?.[1], request.headers.get("accept-language"));
 	await sendBookingConfirmation(getEnv(), { event: found.event, hostName: found.hostName, guestName: name, guestEmail: email, notes, startsAt: slot.startsAt, endsAt: slot.endsAt, locale, publicOrigin: new URL(request.url).origin });
 	return NextResponse.json({ booked: true, startsAt: slot.startsAt, endsAt: slot.endsAt });
 }

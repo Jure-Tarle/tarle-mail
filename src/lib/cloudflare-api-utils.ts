@@ -65,5 +65,5 @@ export function getCloudflareAuthHint(errors: CfApiError[], path = "") {
 }
 
 export function getEmailWorkerName(): string {
-	return "mail-tarle";
+	return "tarle-mail";
 }

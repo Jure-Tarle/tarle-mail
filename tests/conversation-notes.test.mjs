@@ -64,7 +64,7 @@ const mcpMocks = {
 };
 await build({
 	stdin: {
-		contents: `export { createMailflareMcpHandler } from "./src/lib/mcp/server";`,
+		contents: `export { createTarleMailMcpHandler } from "./src/lib/mcp/server";`,
 		resolveDir: root,
 		loader: "ts",
 	},
@@ -276,7 +276,7 @@ test("an MCP key with only mcp:read can list notes but cannot write them", async
 	addMessage("m1");
 	const own = await conversation(owner, "m1");
 	const note = await notes.addConversationNote(db, own, owner.id, { html: "<p>x</p>" });
-	const server = mcp.createMailflareMcpHandler(env, { keyId: "key", user: reader, scopes: ["mcp:read"], mailboxIds: ["support"] }, "http://localhost", "");
+	const server = mcp.createTarleMailMcpHandler(env, { keyId: "key", user: reader, scopes: ["mcp:read"], mailboxIds: ["support"] }, "http://localhost", "");
 	const call = async (name, args) => {
 		const result = await server.tools.get(name)(args);
 		return { data: JSON.parse(result.content[0].text), isError: !!result.isError };

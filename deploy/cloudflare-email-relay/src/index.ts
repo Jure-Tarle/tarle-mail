@@ -1,12 +1,12 @@
 /**
- * Mailflare email relay. Keeps MX on Cloudflare Email Routing while the app
+ * Tarle Mail email relay. Keeps MX on Cloudflare Email Routing while the app
  * runs elsewhere: every message routed to this Worker is posted to the
  * self-hosted server, which answers with the routing decision so reject and
  * forward still happen here, on the live message.
  *
  * Route the domain's catch-all (and any address rules) to this Worker.
  */
-type Env = { MAILFLARE_URL: string; INBOUND_WEBHOOK_SECRET: string };
+type Env = { TARLE_MAIL_URL: string; INBOUND_WEBHOOK_SECRET: string };
 
 type Decision =
 	| { action: "reject"; reason: string }
@@ -34,15 +34,15 @@ export default {
 		const timestamp = String(Math.floor(Date.now() / 1000));
 		let decision: Decision;
 		try {
-			const response = await fetch(`${env.MAILFLARE_URL.replace(/\/$/, "")}/api/inbound`, {
+			const response = await fetch(`${env.TARLE_MAIL_URL.replace(/\/$/, "")}/api/inbound`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "message/rfc822",
-					"X-Mailflare-From": message.from,
-					"X-Mailflare-To": message.to,
-					"X-Mailflare-Headers": headers,
-					"X-Mailflare-Timestamp": timestamp,
-					"X-Mailflare-Signature": await sign(env.INBOUND_WEBHOOK_SECRET, raw, message.from, message.to, headers, timestamp),
+					"X-TarleMail-From": message.from,
+					"X-TarleMail-To": message.to,
+					"X-TarleMail-Headers": headers,
+					"X-TarleMail-Timestamp": timestamp,
+					"X-TarleMail-Signature": await sign(env.INBOUND_WEBHOOK_SECRET, raw, message.from, message.to, headers, timestamp),
 				},
 				body: raw,
 			});
@@ -50,10 +50,10 @@ export default {
 				message.setReject("Message rejected: receiving server says the email is too large. Send a download link instead.");
 				return;
 			}
-			if (!response.ok) throw new Error(`Mailflare answered ${response.status}`);
+			if (!response.ok) throw new Error(`Tarle Mail answered ${response.status}`);
 			decision = (await response.json()) as Decision;
 		} catch (error) {
-			console.error("Relay to Mailflare failed", error);
+			console.error("Relay to Tarle Mail failed", error);
 			// setReject bounces permanently; throwing is a temporary SMTP failure, so the sender retries.
 			throw error;
 		}

@@ -26,7 +26,7 @@ import { hasValidSessionMutationOrigin } from "./src/lib/auth/origin";
 import {
 	getAccountForwardingDestination,
 	isForwardedMarkerValid,
-	MAILFLARE_FORWARDED_HEADER,
+	TARLE_MAIL_FORWARDED_HEADER,
 } from "./src/lib/email/account-forwarding";
 import { runScheduledDatabaseBackup } from "./src/lib/backups/runner";
 import { processAgentDraftJob } from "./src/lib/agent/jobs/utils";
@@ -64,8 +64,8 @@ export default {
 			}
 
 			const hub = env.REALTIME.getByName(user.id);
-			const hubRequest = new Request("https://mailflare-realtime/connect", request);
-			hubRequest.headers.set("X-Mailflare-Realtime-User", user.id);
+			const hubRequest = new Request("https://tarle-mail-realtime/connect", request);
+			hubRequest.headers.set("X-TarleMail-Realtime-User", user.id);
 			return hub.fetch(hubRequest);
 		}
 
@@ -82,7 +82,7 @@ export default {
 			}
 			// Domain routing rules are resolved here rather than in the queue because reject and
 			// forward can only be actioned on the live ForwardableEmailMessage.
-			const alreadyForwarded = await isForwardedMarkerValid(env, message.headers.get(MAILFLARE_FORWARDED_HEADER));
+			const alreadyForwarded = await isForwardedMarkerValid(env, message.headers.get(TARLE_MAIL_FORWARDED_HEADER));
 			const decision = await resolveIncomingMail(env, message.from, message.to, {
 				subject: message.headers.get("subject"),
 				alreadyForwarded,

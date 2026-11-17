@@ -77,8 +77,8 @@ export async function registerInboundInvite(env: CloudflareEnv, input: { userId:
 			await applyInviteReply(env, input.userId, input.senderAddress, invite);
 			return;
 		}
-		// Mailflare writes UID <event id>@mailflare; an invitation you sent yourself is already your own event.
-		const ownId = invite.uid.endsWith("@mailflare") ? invite.uid.slice(0, -"@mailflare".length) : null;
+		// Tarle Mail writes UID <event id>@tarle-mail; an invitation you sent yourself is already your own event.
+		const ownId = invite.uid.endsWith("@tarle-mail") ? invite.uid.slice(0, -"@tarle-mail".length) : null;
 		if (ownId) {
 			const [own] = await db.select({ id: calendarEvents.id }).from(calendarEvents).where(and(eq(calendarEvents.id, ownId), eq(calendarEvents.userId, input.userId))).limit(1);
 			if (own) return;
@@ -126,9 +126,9 @@ const REPLY_STATUS: Record<string, string> = { ACCEPTED: "accepted", TENTATIVE: 
  * occurrence (RECURRENCE-ID) is not one about the event as a whole, so it is ignored.
  */
 async function applyInviteReply(env: CloudflareEnv, userId: string, senderAddress: string, invite: ParsedInvite): Promise<void> {
-	if (!invite.uid.endsWith("@mailflare") || invite.recurrenceId) return;
+	if (!invite.uid.endsWith("@tarle-mail") || invite.recurrenceId) return;
 	const db = getDb(env);
-	const eventId = invite.uid.slice(0, -"@mailflare".length);
+	const eventId = invite.uid.slice(0, -"@tarle-mail".length);
 	const [event] = await db.select().from(calendarEvents).where(and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId))).limit(1);
 	if (!event) return;
 	let guests: string[] = [];

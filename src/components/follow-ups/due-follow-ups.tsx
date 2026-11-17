@@ -39,10 +39,10 @@ export function DueFollowUps({ mailboxId }: { mailboxId?: string | null }) {
 		}
 		load();
 		window.addEventListener(FOLLOW_UPS_CHANGED_EVENT, load);
-		window.addEventListener("mailflare:messages-changed", onMessagesChanged);
+		window.addEventListener("tarle-mail:messages-changed", onMessagesChanged);
 		return () => {
 			window.removeEventListener(FOLLOW_UPS_CHANGED_EVENT, load);
-			window.removeEventListener("mailflare:messages-changed", onMessagesChanged);
+			window.removeEventListener("tarle-mail:messages-changed", onMessagesChanged);
 			if (timer) window.clearTimeout(timer);
 		};
 	}, [load]);

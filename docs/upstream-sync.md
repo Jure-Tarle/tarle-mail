@@ -16,7 +16,7 @@ Expect conflicts where this fork changed upstream files:
 | Area | Files | Keep |
 | --- | --- | --- |
 | License gate | `src/lib/licenses/service.ts`, `src/lib/mailboxes/access-utils.ts` | Ours: always Team, no license server. Delete any new Paymug or license UI files upstream adds and grep for new `getLicenseEntitlements` checks. |
-| Names | `wrangler.jsonc`, `package.json`, `src/lib/cloudflare-api-utils.ts` | Ours (`mail-tarle`). Take upstream's new bindings and settings. |
+| Names | `wrangler.jsonc`, `package.json`, `src/lib/cloudflare-api-utils.ts` | Ours (`tarle-mail`). Take upstream's new bindings and settings. |
 | Branding | `src/lib/branding/service.ts`, `src/lib/i18n/en.json`, `public/locales/*.json` | Both: take upstream's new keys, keep "Tarle Mail" in the text. |
 | Update button | `src/app/api/admin/update/POST.ts`, `.github/workflows/deploy-update.yml` | Ours (disabled, workflow deleted). |
 | Sending | `src/lib/email/outbound-provider*.ts`, `src/lib/email/send.ts` | Both: upstream changes plus the provider chain. |

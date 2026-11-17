@@ -1,14 +1,14 @@
 services:
-  mailflare:
+  tarle-mail:
     build: .
-    image: mailflare:local
+    image: tarle-mail:local
     restart: unless-stopped
     ports:
       - "3000:3000"   # web app and JMAP
       - "25:25"       # inbound SMTP (point your domain's MX here)
     env_file: .env.docker
     volumes:
-      - mailflare-data:/data
+      - tarle-mail-data:/data
 
 volumes:
-  mailflare-data:
+  tarle-mail-data:

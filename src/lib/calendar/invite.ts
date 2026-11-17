@@ -345,7 +345,7 @@ function readInvite(text: string, options: ParseInviteOptions): ParsedInvite | n
 }
 
 /**
- * Mailflare stores repeatUntil as an exclusive bound (`occurrence >= repeatUntil` stops the series) in whole seconds,
+ * Tarle Mail stores repeatUntil as an exclusive bound (`occurrence >= repeatUntil` stops the series) in whole seconds,
  * while RFC 5545 UNTIL and the last COUNT occurrence are inclusive. One second past the last start keeps it.
  */
 const INCLUSIVE_PAD_MS = 1000;
@@ -394,7 +394,7 @@ function lastOccurrenceStart(start: Date, repeat: InviteRepeat, count: number, z
 }
 
 /**
- * Maps the RRULE shapes Mailflare can store; anything else becomes a one-off event on the first date.
+ * Maps the RRULE shapes Tarle Mail can store; anything else becomes a one-off event on the first date.
  * `startsAt` (and the zone its clock time is in) is needed to turn COUNT into an end date.
  */
 export function inviteRepeat(rrule: string | null, startsAt?: Date, timeZone?: string | null): InviteRepeat {
@@ -408,7 +408,7 @@ export function inviteRepeat(rrule: string | null, startsAt?: Date, timeZone?: s
 	if (rule.INTERVAL && rule.INTERVAL !== "1") return none;
 	let repeat: InviteRepeat;
 	const byDays = [...new Set((rule.BYDAY ?? "").split(",").map((code) => WEEKDAY_CODES.indexOf(code.replace(/^[+-]?\d+/, ""))).filter((day) => day >= 0))].sort((a, b) => a - b);
-	// DAILY with BYDAY (Outlook's "every weekday") keeps only the listed days, which is Mailflare's weekdays repeat.
+	// DAILY with BYDAY (Outlook's "every weekday") keeps only the listed days, which is Tarle Mail's weekdays repeat.
 	if (rule.FREQ === "DAILY") repeat = byDays.length ? { ...none, repeat: "weekdays", repeatDays: byDays } : { ...none, repeat: "daily" };
 	else if (rule.FREQ === "WEEKLY") {
 		repeat = byDays.length > 1 ? { ...none, repeat: "weekdays", repeatDays: byDays } : { ...none, repeat: "weekly" };
@@ -439,7 +439,7 @@ export function buildReplyIcs(invite: ParsedInvite, attendee: string, response: 
 	const dateValue = (name: string, value: Date) => invite.allDay
 		? `${name};VALUE=DATE:${zonedDateFields(value, normalizeTimeZone(invite.recipientZone)).toISOString().slice(0, 10).replace(/-/g, "")}`
 		: `${name}:${formatIcsUtc(value)}`;
-	const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Mailflare//Calendar//EN", "METHOD:REPLY", "BEGIN:VEVENT", `UID:${stripControls(invite.uid)}`, `DTSTAMP:${formatIcsUtc(new Date())}`,
+	const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TarleMail//Calendar//EN", "METHOD:REPLY", "BEGIN:VEVENT", `UID:${stripControls(invite.uid)}`, `DTSTAMP:${formatIcsUtc(new Date())}`,
 		dateValue("DTSTART", invite.startsAt),
 		...(invite.recurrenceId ? [dateValue("RECURRENCE-ID", invite.recurrenceId)] : []),
 		`SEQUENCE:${invite.sequence}`,

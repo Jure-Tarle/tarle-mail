@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import relay from "../deploy/cloudflare-email-relay/src/index.ts";
 
-const env = { MAILFLARE_URL: "https://mail.example.com/", INBOUND_WEBHOOK_SECRET: "secret" };
+const env = { TARLE_MAIL_URL: "https://mail.example.com/", INBOUND_WEBHOOK_SECRET: "secret" };
 
 function message() {
 	const calls = { rejected: [], forwarded: [] };

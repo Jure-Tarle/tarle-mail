@@ -12,7 +12,7 @@ export function toBase64(buffer: ArrayBuffer): string {
 
 /** Providers that do not return the RFC 5322 Message-ID get one minted here, so replies can thread against it. */
 export function mintMessageId(from: string): string {
-	const domain = getEmailAddress(from).split("@")[1] || "mailflare.local";
+	const domain = getEmailAddress(from).split("@")[1] || "tarle-mail.local";
 	return `<${crypto.randomUUID()}@${domain}>`;
 }
 

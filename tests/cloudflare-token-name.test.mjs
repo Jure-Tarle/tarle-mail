@@ -11,7 +11,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
  * The runtime Cloudflare token is documented as CLOUDFLARE_TOKEN; CF_TOKEN (upstream's name) must keep
  * working. The setup check once read CF_TOKEN directly and reported a configured token as missing.
  */
-const directory = mkdtempSync(join(root, "node_modules", "mail-tarle-token-name-"));
+const directory = mkdtempSync(join(root, "node_modules", "tarle-mail-token-name-"));
 after(() => rmSync(directory, { recursive: true, force: true }));
 
 await build({

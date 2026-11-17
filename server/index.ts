@@ -28,7 +28,7 @@ async function main() {
 	const dev = process.env.NODE_ENV !== "production";
 	const runtime = createNodeRuntime();
 	const { env } = runtime;
-	globalThis.__mailflareNodeEnv = env;
+	globalThis.__tarleMailNodeEnv = env;
 
 	const migrated = runtime.database
 		? await applyMigrations(runtime.database, resolve(process.env.MIGRATIONS_DIR ?? join(process.cwd(), "drizzle", "migrations")))
@@ -69,8 +69,8 @@ async function main() {
 		const clientIp = (trustProxy ? hops.at(-1) : undefined) ?? request.socket.remoteAddress;
 		delete request.headers["cf-connecting-ip"];
 		delete request.headers["x-forwarded-for"];
-		delete request.headers["x-mailflare-client-ip"];
-		if (clientIp) request.headers["x-mailflare-client-ip"] = clientIp;
+		delete request.headers["x-tarle-mail-client-ip"];
+		if (clientIp) request.headers["x-tarle-mail-client-ip"] = clientIp;
 		void handle(request, response, parse(request.url ?? "/", true));
 	});
 
@@ -96,7 +96,7 @@ async function main() {
 	});
 
 	server.listen(port, host, () => {
-		console.log(`Mailflare listening on http://${host}:${port} (data in ${runtime.dataDir})`);
+		console.log(`Tarle Mail listening on http://${host}:${port} (data in ${runtime.dataDir})`);
 	});
 
 	const smtpPort = Number(process.env.SMTP_INBOUND_PORT ?? 25);
@@ -124,6 +124,6 @@ async function main() {
 }
 
 main().catch((error) => {
-	console.error("Mailflare failed to start", error);
+	console.error("Tarle Mail failed to start", error);
 	process.exit(1);
 });

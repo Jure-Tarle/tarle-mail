@@ -77,6 +77,6 @@ async function connectNode({ hostname, port, secure }: { hostname: string; port:
 }
 
 /** The socket factory for the runtime the app is running on. */
-export function getSmtpConnect(env: Pick<CloudflareEnv, "MAILFLARE_RUNTIME">): SmtpConnect {
+export function getSmtpConnect(env: Pick<CloudflareEnv, "TARLE_MAIL_RUNTIME">): SmtpConnect {
 	return isNodeRuntime(env) ? connectNode : connectWorkers;
 }

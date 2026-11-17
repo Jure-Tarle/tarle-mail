@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useState } from "react";
 
-const STORAGE_KEY = "mailflare-two-column-reading";
-const CHANGE_EVENT = "mailflare:two-column-reading-changed";
+const STORAGE_KEY = "tarle-mail-two-column-reading";
+const CHANGE_EVENT = "tarle-mail:two-column-reading-changed";
 
 function readStored() {
 	try {

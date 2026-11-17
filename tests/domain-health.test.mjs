@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const directory = mkdtempSync(join(root, "node_modules", "mailflare-domain-health-"));
+const directory = mkdtempSync(join(root, "node_modules", "tarle-mail-domain-health-"));
 after(() => rmSync(directory, { recursive: true, force: true }));
 await build({
 	stdin: {
@@ -146,12 +146,12 @@ test("Email Routing and catch-all: disabled routing and a catch-all that goes el
 	assert.equal(diff.evaluateRouting(true).status, "ok");
 	assert.deepEqual(diff.evaluateRouting(false).actions, [{ kind: "enable-routing" }]);
 
-	assert.equal(diff.evaluateCatchAll({ enabled: true, actions: [{ type: "worker", value: ["mail-tarle"] }] }, "mail-tarle").status, "ok");
-	assert.equal(diff.evaluateCatchAll(null, "mail-tarle").status, "missing");
-	const forward = diff.evaluateCatchAll({ enabled: true, actions: [{ type: "forward", value: ["me@example.net"] }] }, "mail-tarle");
+	assert.equal(diff.evaluateCatchAll({ enabled: true, actions: [{ type: "worker", value: ["tarle-mail"] }] }, "tarle-mail").status, "ok");
+	assert.equal(diff.evaluateCatchAll(null, "tarle-mail").status, "missing");
+	const forward = diff.evaluateCatchAll({ enabled: true, actions: [{ type: "forward", value: ["me@example.net"] }] }, "tarle-mail");
 	assert.equal(forward.status, "wrong");
-	assert.deepEqual(forward.actions, [{ kind: "bind-catch-all", worker: "mail-tarle", current: "forward to me@example.net" }]);
-	assert.equal(diff.evaluateCatchAll({ enabled: false, actions: [{ type: "worker", value: ["mail-tarle"] }] }, "mail-tarle").status, "wrong");
+	assert.deepEqual(forward.actions, [{ kind: "bind-catch-all", worker: "tarle-mail", current: "forward to me@example.net" }]);
+	assert.equal(diff.evaluateCatchAll({ enabled: false, actions: [{ type: "worker", value: ["tarle-mail"] }] }, "tarle-mail").status, "wrong");
 });
 
 test("relative provider names become absolute", () => {
@@ -175,7 +175,7 @@ test("a repair plan only creates records or rewrites the one record it names, an
 		{ id: "spf", label: "SPF", ...diff.evaluateSpf("example.com", lookup("TXT", "example.com"), [CF_SPF]) },
 		{ id: "dmarc", label: "DMARC", ...diff.evaluateDmarc("_dmarc.example.com", lookup("TXT", "_dmarc.example.com")) },
 		{ id: "routing", label: "Email Routing", ...diff.evaluateRouting(false) },
-		{ id: "catchAll", label: "Catch-all rule", ...diff.evaluateCatchAll(null, "mail-tarle") },
+		{ id: "catchAll", label: "Catch-all rule", ...diff.evaluateCatchAll(null, "tarle-mail") },
 	];
 	const plan = diff.buildRepairPlan(checks);
 	assert.ok(plan.length >= 3);

@@ -98,7 +98,7 @@ export async function exportDatabaseRecords(db: D1Database, excludedGroups: Back
 		// Backups hold SQLite-style values whichever database wrote them, so they restore anywhere.
 		tables[table] = dialect === "sqlite" ? result.results : result.results.map(toPortableRecord);
 	}
-	const document: DatabaseBackupDocument = { format: "mailflare-database-backup", version: 2, createdAt: new Date().toISOString(), includedTables, tables };
+	const document: DatabaseBackupDocument = { format: "tarle-mail-database-backup", version: 2, createdAt: new Date().toISOString(), includedTables, tables };
 	return new TextEncoder().encode(JSON.stringify(document));
 }
 
@@ -159,15 +159,15 @@ export async function restoreDatabaseRecords(db: D1Database, content: ArrayBuffe
 
 function parseDatabaseBackup(content: ArrayBuffer): DatabaseBackupDocument {
 	let value: unknown;
-	try { value = JSON.parse(new TextDecoder().decode(content)); } catch { throw new Error("The selected file is not a valid Mailflare backup"); }
-	if (!isDatabaseBackupDocument(value)) throw new Error("The selected file is not a valid Mailflare backup");
+	try { value = JSON.parse(new TextDecoder().decode(content)); } catch { throw new Error("The selected file is not a valid Tarle Mail backup"); }
+	if (!isDatabaseBackupDocument(value)) throw new Error("The selected file is not a valid Tarle Mail backup");
 	return value;
 }
 
 function isDatabaseBackupDocument(value: unknown): value is DatabaseBackupDocument {
 	if (!value || typeof value !== "object") return false;
 	const document = value as Partial<DatabaseBackupDocument>;
-	if (document.format !== "mailflare-database-backup" || typeof document.version !== "number" || ![1, 2].includes(document.version) || !document.tables) return false;
+	if (document.format !== "tarle-mail-database-backup" || typeof document.version !== "number" || ![1, 2].includes(document.version) || !document.tables) return false;
 	if (document.includedTables) {
 		if (!Array.isArray(document.includedTables) || !document.includedTables.length || new Set(document.includedTables).size !== document.includedTables.length) return false;
 		if (!document.includedTables.every((table) => BACKUP_TABLES.includes(table) && Array.isArray(document.tables?.[table]))) return false;

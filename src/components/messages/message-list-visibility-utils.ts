@@ -1,4 +1,4 @@
-const STORAGE_KEY = "mailflare-message-list-visible";
+const STORAGE_KEY = "tarle-mail-message-list-visible";
 
 export function readInitialMessageListVisible() {
 	if (typeof window === "undefined") return true;

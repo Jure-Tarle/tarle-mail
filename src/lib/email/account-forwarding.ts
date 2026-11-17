@@ -6,7 +6,7 @@ import { resolveInboundAddress } from "@/lib/email/routing";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
 import { getCloudflareToken } from "@/lib/runtime";
 
-export const MAILFLARE_FORWARDED_HEADER = "X-Mailflare-Forwarded";
+export const TARLE_MAIL_FORWARDED_HEADER = "X-TarleMail-Forwarded";
 
 /** Server-only secrets the loop-guard marker can be keyed with, in order of preference. */
 function markerSecret(env: CloudflareEnv): string | null {
@@ -14,14 +14,14 @@ function markerSecret(env: CloudflareEnv): string | null {
 }
 
 async function markerMac(secret: string): Promise<string> {
-	const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`mailflare-forwarded\n${secret}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+	const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`tarle-mail-forwarded\n${secret}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 	const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("forwarded"));
 	return Array.from(new Uint8Array(mac), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 /**
  * The loop-guard marker added to mail we forward. It is keyed with a server secret, so a sender
- * cannot add a bare `X-Mailflare-Forwarded: 1` to switch forwarding off. It is not bound to a
+ * cannot add a bare `X-TarleMail-Forwarded: 1` to switch forwarding off. It is not bound to a
  * recipient because a forward between two of our own mailboxes must still be recognised. Without
  * any server secret configured it falls back to the unsigned "1".
  */

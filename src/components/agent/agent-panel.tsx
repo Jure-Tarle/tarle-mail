@@ -170,8 +170,8 @@ export function AgentPanel({ open, fullSize, onClose, onToggleFullSize }: AgentP
 			const data = (event as CustomEvent<{ mailboxId: string }>).detail;
 			if (open && data.mailboxId === mailboxId) void refresh();
 		}
-		window.addEventListener("mailflare:agent-draft", onDraft);
-		return () => window.removeEventListener("mailflare:agent-draft", onDraft);
+		window.addEventListener("tarle-mail:agent-draft", onDraft);
+		return () => window.removeEventListener("tarle-mail:agent-draft", onDraft);
 	}, [mailboxId, open, refresh]);
 
 	useEffect(() => {
@@ -357,7 +357,7 @@ export function AgentPanel({ open, fullSize, onClose, onToggleFullSize }: AgentP
 		try {
 			const result = await approveAgentAction(item.recordId);
 			setMessages((current) => current.map((message) => message.id === item.id ? { ...message, content: JSON.stringify(result) } : message));
-			window.dispatchEvent(new Event("mailflare:messages-changed"));
+			window.dispatchEvent(new Event("tarle-mail:messages-changed"));
 		} catch (cause) { setError(cause instanceof Error ? cause.message : t("agent.panel.approveFailed")); }
 		finally { setApprovingId(null); }
 	}

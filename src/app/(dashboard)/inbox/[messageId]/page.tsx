@@ -167,8 +167,8 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
         return { ...current, message: { ...current.message, read: cachedRead } };
       });
     }
-    window.addEventListener("mailflare:messages-changed", syncCachedReadState);
-    return () => window.removeEventListener("mailflare:messages-changed", syncCachedReadState);
+    window.addEventListener("tarle-mail:messages-changed", syncCachedReadState);
+    return () => window.removeEventListener("tarle-mail:messages-changed", syncCachedReadState);
   }, [messageId]);
 
   async function retryBody() {

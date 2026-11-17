@@ -42,7 +42,7 @@ interface CloudflareEnv {
 	CF_ACCESS_TEAM_DOMAIN?: string;
 	/** Application Audience (AUD) tag of the Cloudflare Access application protecting the domain. */
 	CF_ACCESS_AUD?: string;
-	/** Origin of a Mailflare push relay (mailflare-relay); lets this server push without APNS_* keys. */
+	/** Origin of a Tarle Mail push relay (mailflare-relay); lets this server push without APNS_* keys. */
 	APNS_RELAY_URL?: string;
 	/** Spamhaus Data Query Service key; enables ZEN (sending IP) and DBL (domain) checks in spam analysis. */
 	SPAMHAUS_DQS_KEY?: string;
@@ -78,7 +78,7 @@ interface CloudflareEnv {
 	GITHUB_UPDATE_REF?: string;
 	GITHUB_UPDATE_REPO?: string;
 	/** "node" when served by the self-hosted runtime in server/; unset on Workers. */
-	MAILFLARE_RUNTIME?: "node";
+	TARLE_MAIL_RUNTIME?: "node";
 	/** Shared secret the Cloudflare email relay signs inbound webhooks with (self-hosted only). */
 	INBOUND_WEBHOOK_SECRET?: string;
 	/** "1" refuses relays that do not sign the header map with a timestamp (relay Worker v2). */

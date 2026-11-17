@@ -1,13 +1,13 @@
 # Sending and receiving providers
 
-Mailflare keeps your mail data in your own D1 database and R2 bucket, Backblaze B2 or AWS S3 (or SQLite and local files when self-hosted). What carries mail over the wire is a choice you make **per domain**, separately for receiving and for sending:
+Tarle Mail keeps your mail data in your own D1 database and R2 bucket, Backblaze B2 or AWS S3 (or SQLite and local files when self-hosted). What carries mail over the wire is a choice you make **per domain**, separately for receiving and for sending:
 
 | | Cloudflare | Resend | Amazon SES |
 |---|---|---|---|
 | **Receiving** | Email Routing (the default) | `email.received` webhook | S3 + SNS notification |
 | **Sending** | Cloudflare Email Sending | Resend API | SESv2 API |
 
-DNS stays on Cloudflare for every combination: Mailflare writes the records for whichever provider you pick. A domain can also be **receive-only** (sending: Not selected) or **send-only** (receiving: Not selected).
+DNS stays on Cloudflare for every combination: Tarle Mail writes the records for whichever provider you pick. A domain can also be **receive-only** (sending: Not selected) or **send-only** (receiving: Not selected).
 
 Open **Admin → Domains**, expand a domain, and use the **Setup receiving email** and **Setup sending email** sections. Each provider is a card with a switch. Turning a switch on selects that provider and shows its setup; the icon on the left is a green check when it is fully set up and an amber triangle when it is not.
 
@@ -21,18 +21,18 @@ Open **Admin → Domains**, expand a domain, and use the **Setup receiving email
 
 Resend uses one **API key**, shared by every domain that uses it. Create it at [resend.com/api-keys](https://resend.com/api-keys).
 
-- A **full-access** key lets Mailflare add the domain to Resend, write its DNS records to the Cloudflare zone, verify it, and (for receiving) register the webhook.
-- A **sending-only** key can send, but Resend refuses it for domain and webhook management, so you add the domain at [resend.com/domains](https://resend.com/domains), create its records yourself, and use **Send test email** to confirm. Mailflare says so in the card instead of failing.
+- A **full-access** key lets Tarle Mail add the domain to Resend, write its DNS records to the Cloudflare zone, verify it, and (for receiving) register the webhook.
+- A **sending-only** key can send, but Resend refuses it for domain and webhook management, so you add the domain at [resend.com/domains](https://resend.com/domains), create its records yourself, and use **Send test email** to confirm. Tarle Mail says so in the card instead of failing.
 
 The key is checked against Resend when you save it. It can also come from the `RESEND_API_KEY` secret, which is used when no key is saved in the app. Only the primary administrator can change it.
 
-**Sending.** Setup creates the domain in Resend, publishes its DKIM and SPF records, and asks Resend to verify. Verification is Resend's own status: it can stay `pending` for a few minutes after the DNS is added, and **Check status** re-asks Resend without creating anything new. Replies thread correctly because Mailflare sets its own `Message-ID`.
+**Sending.** Setup creates the domain in Resend, publishes its DKIM and SPF records, and asks Resend to verify. Verification is Resend's own status: it can stay `pending` for a few minutes after the DNS is added, and **Check status** re-asks Resend without creating anything new. Replies thread correctly because Tarle Mail sets its own `Message-ID`.
 
-**Receiving.** Setup enables the receiving capability on the domain, points the apex MX at Resend, and registers one webhook for `email.received` at `/api/inbound/resend`. The webhook is authenticated with the Svix signing secret Resend returns when it is created; Mailflare stores that secret, which is why a webhook it did not create itself is replaced. For each event Mailflare fetches the message, downloads the raw MIME and runs it through the normal inbound pipeline. Resend must be able to reach your app, so `APP_URL` has to be a public HTTPS address.
+**Receiving.** Setup enables the receiving capability on the domain, points the apex MX at Resend, and registers one webhook for `email.received` at `/api/inbound/resend`. The webhook is authenticated with the Svix signing secret Resend returns when it is created; Tarle Mail stores that secret, which is why a webhook it did not create itself is replaced. For each event Tarle Mail fetches the message, downloads the raw MIME and runs it through the normal inbound pipeline. Resend must be able to reach your app, so `APP_URL` has to be a public HTTPS address.
 
 ## Amazon SES
 
-Create an IAM user with programmatic access, then enter its **access key ID**, **secret access key** and **region** in the SES card. Mailflare validates them before saving: it proves the identity with STS, then makes a harmless call to each service it needs, and lists every permission the key lacks. Credentials can also come from `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_REGION`.
+Create an IAM user with programmatic access, then enter its **access key ID**, **secret access key** and **region** in the SES card. Tarle Mail validates them before saving: it proves the identity with STS, then makes a harmless call to each service it needs, and lists every permission the key lacks. Credentials can also come from `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_REGION`.
 
 The key needs this policy (the card shows it too, with only the missing parts called out):
 
@@ -50,16 +50,16 @@ The key needs this policy (the card shows it too, with only the missing parts ca
 
 Only the sending statements are needed if you use SES just for sending.
 
-**Sending.** Setup creates the domain's SES identity, publishes its three DKIM CNAME records to the Cloudflare zone, and tracks verification. New AWS accounts start in the **SES sandbox**, where SES delivers only to verified addresses; Mailflare shows a warning row until you request production access in the SES console. Replies thread because Mailflare stores the Message-ID SES assigns (`<id@email.amazonses.com>` in us-east-1, `<id@region.amazonses.com>` elsewhere).
+**Sending.** Setup creates the domain's SES identity, publishes its three DKIM CNAME records to the Cloudflare zone, and tracks verification. New AWS accounts start in the **SES sandbox**, where SES delivers only to verified addresses; Tarle Mail shows a warning row until you request production access in the SES console. Replies thread because Tarle Mail stores the Message-ID SES assigns (`<id@email.amazonses.com>` in us-east-1, `<id@region.amazonses.com>` elsewhere).
 
-**Receiving.** SES can only receive in some regions (for example us-east-1, us-west-2 and eu-west-1); Mailflare rejects the others. Setup creates, idempotently:
+**Receiving.** SES can only receive in some regions (for example us-east-1, us-west-2 and eu-west-1); Tarle Mail rejects the others. Setup creates, idempotently:
 
-1. an S3 bucket (`mailflare-inbound-<account>-<region>`) that only SES may write to, with a one-day expiry for leftovers (best effort);
+1. an S3 bucket (`tarle-mail-inbound-<account>-<region>`) that only SES may write to, with a one-day expiry for leftovers (best effort);
 2. an SNS topic that only SES may publish to, subscribed to `/api/inbound/ses` with a secret token in the URL;
-3. a receipt rule for the domain in the account's active rule set (Mailflare creates and activates `mailflare-inbound` only if the account has none, and otherwise adds its rule beside yours);
+3. a receipt rule for the domain in the account's active rule set (Tarle Mail creates and activates `tarle-mail-inbound` only if the account has none, and otherwise adds its rule beside yours);
 4. the MX record `inbound-smtp.<region>.amazonaws.com`.
 
-Each message is read from your own bucket, handed to the normal inbound pipeline, and deleted. SES's virus scan is enabled and infected messages are dropped. `APP_URL` has to be a public HTTPS address so SNS can reach the endpoint. The bucket and topic are shared by all SES domains; **Clean up** removes only the domain's rule and MX, so Mailflare never deletes resources another domain may still use.
+Each message is read from your own bucket, handed to the normal inbound pipeline, and deleted. SES's virus scan is enabled and infected messages are dropped. `APP_URL` has to be a public HTTPS address so SNS can reach the endpoint. The bucket and topic are shared by all SES domains; **Clean up** removes only the domain's rule and MX, so Tarle Mail never deletes resources another domain may still use.
 
 ## Brevo, Mailjet and SMTP (sending only)
 
@@ -68,14 +68,14 @@ Three more senders can be chosen per domain under **Setup sending email**. They 
 Credentials are shared by every domain and entered once, either in a provider's card or under **Admin → General → Sending providers**. Saving proves them with the provider first (Brevo `GET /account`, Mailjet `GET /v3/REST/myprofile`, an SMTP login without sending), and **Test connection** repeats that later. Like the Resend key and the AWS credentials they are kept in the app settings and backed up with them; the API only ever returns a masked summary (`xkey••••cdef`, `user@host:587`). Only the primary administrator can change them.
 
 - **Brevo** needs an API key and uses the v3 transactional API. The API has no Content-ID field, so inline images the HTML references with `cid:` are embedded as data URIs.
-- **Mailjet** needs an API key and secret key and uses Send API v3.1. Mailjet assigns its own `Message-ID`; Mailflare adds its own id to `References` so replies still thread.
-- **SMTP** takes host, port, security, username and password. Port **587** uses STARTTLS and **465** implicit TLS; port 25 is refused. On Cloudflare Workers the connection uses `cloudflare:sockets`; the self-hosted Node server uses `node:net` and `node:tls` behind the same interface. The message goes out as MIME that Mailflare builds itself.
+- **Mailjet** needs an API key and secret key and uses Send API v3.1. Mailjet assigns its own `Message-ID`; Tarle Mail adds its own id to `References` so replies still thread.
+- **SMTP** takes host, port, security, username and password. Port **587** uses STARTTLS and **465** implicit TLS; port 25 is refused. On Cloudflare Workers the connection uses `cloudflare:sockets`; the self-hosted Node server uses `node:net` and `node:tls` behind the same interface. The message goes out as MIME that Tarle Mail builds itself.
 
 `BREVO_API_BASE` and `MAILJET_API_BASE` replace the API origin (tests, proxies); leave them unset normally.
 
 ## Fallback providers and sending limits
 
-A domain keeps one **sending provider** and can have an ordered list of **fallback providers** below it. Mailflare tries the provider first, then each fallback in order, and records which one accepted the message on the outbound job (`outbound_jobs.provider`). A fallback is tried when the provider
+A domain keeps one **sending provider** and can have an ordered list of **fallback providers** below it. Tarle Mail tries the provider first, then each fallback in order, and records which one accepted the message on the outbound job (`outbound_jobs.provider`). A fallback is tried when the provider
 
 - is over its **daily or monthly limit** (it is skipped without a request),
 - answers **429** or a **5xx**, or an SMTP **4xx** reply,
@@ -89,7 +89,7 @@ A **4xx** answer (an invalid sender, a rejected address, bad credentials, a perm
 
 Only one service can own a domain's MX records. When a provider's Setup finds MX records for something else (including Cloudflare Email Routing's), it stops and shows them, and replaces them only after you confirm. Confirming means the previous service stops receiving mail for that domain.
 
-Per-address routes to the Mailflare Worker are only created for domains that receive through Cloudflare, and are recreated when you set Cloudflare up again.
+Per-address routes to the Tarle Mail Worker are only created for domains that receive through Cloudflare, and are recreated when you set Cloudflare up again.
 
 ## Cleaning up the provider you left
 

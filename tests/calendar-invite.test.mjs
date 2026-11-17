@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const dir = mkdtempSync(join(tmpdir(), "mailflare-calendar-invite-"));
+const dir = mkdtempSync(join(tmpdir(), "tarle-mail-calendar-invite-"));
 after(() => rmSync(dir, { recursive: true, force: true }));
 await build({
 	entryPoints: { i: join(root, "src/lib/calendar/invite.ts"), r: join(root, "src/lib/calendar/invite-rules.ts"), u: join(root, "src/lib/calendar/utils.ts") },
@@ -21,11 +21,11 @@ const { createCalendarInvitation } = await import(pathToFileURL(join(dir, "u.mjs
 const ics = (...lines) => lines.join("\r\n");
 const event = (...lines) => ics("BEGIN:VCALENDAR", "VERSION:2.0", "METHOD:REQUEST", "BEGIN:VEVENT", "UID:x", ...lines, "END:VEVENT", "END:VCALENDAR");
 
-const mailflare = ics("BEGIN:VCALENDAR", "VERSION:2.0", "METHOD:REQUEST", "BEGIN:VEVENT", "UID:evt_abc@mailflare", "DTSTART:20261104T170000Z", "DTEND:20261104T180000Z", "SUMMARY:Planning meeting\\, Q4", "DESCRIPTION:Line one\\nLine two", "LOCATION:", "END:VEVENT", "END:VCALENDAR");
+const tarleMailInvite = ics("BEGIN:VCALENDAR", "VERSION:2.0", "METHOD:REQUEST", "BEGIN:VEVENT", "UID:evt_abc@tarle-mail", "DTSTART:20261104T170000Z", "DTEND:20261104T180000Z", "SUMMARY:Planning meeting\\, Q4", "DESCRIPTION:Line one\\nLine two", "LOCATION:", "END:VEVENT", "END:VCALENDAR");
 
-test("parses a Mailflare invite", () => {
-	const invite = parseInvite(mailflare);
-	assert.equal(invite.uid, "evt_abc@mailflare");
+test("parses a Tarle Mail invite", () => {
+	const invite = parseInvite(tarleMailInvite);
+	assert.equal(invite.uid, "evt_abc@tarle-mail");
 	assert.equal(invite.method, "REQUEST");
 	assert.equal(invite.title, "Planning meeting, Q4");
 	assert.equal(invite.description, "Line one\nLine two");
@@ -226,7 +226,7 @@ test("UNTIL includes an occurrence that starts exactly then", () => {
 });
 
 test("reply carries the attendee status, sequence and occurrence, folded with a trailing CRLF", () => {
-	const reply = buildReplyIcs(parseInvite(mailflare), "guest@example.com", "tentative");
+	const reply = buildReplyIcs(parseInvite(tarleMailInvite), "guest@example.com", "tentative");
 	assert.match(reply, /METHOD:REPLY/);
 	assert.match(reply, /ATTENDEE;PARTSTAT=TENTATIVE:mailto:guest@example.com/);
 	assert.match(reply, /\r\nSEQUENCE:0\r\n/);
@@ -240,11 +240,11 @@ test("reply carries the attendee status, sequence and occurrence, folded with a 
 	assert.equal(parseInvite(occurrenceReply).title, "Long title ".repeat(12).trim());
 });
 
-test("a reply built by Mailflare parses back to the answering guest and status", () => {
-	const reply = buildReplyIcs(parseInvite(mailflare), "guest@example.com", "accepted");
+test("a reply built by Tarle Mail parses back to the answering guest and status", () => {
+	const reply = buildReplyIcs(parseInvite(tarleMailInvite), "guest@example.com", "accepted");
 	const parsed = parseInvite(reply);
 	assert.equal(parsed.method, "REPLY");
-	assert.equal(parsed.uid, "evt_abc@mailflare");
+	assert.equal(parsed.uid, "evt_abc@tarle-mail");
 	assert.deepEqual(parsed.attendees, [{ email: "guest@example.com", status: "ACCEPTED" }]);
 });
 

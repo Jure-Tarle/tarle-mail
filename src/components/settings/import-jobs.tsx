@@ -35,7 +35,7 @@ export function ImportJobs({ refreshKey }: { refreshKey: number }) {
 			});
 			previous.current = new Map(next.map((job) => [job.id, job.status]));
 			setJobs(next);
-			if (finishedNow) window.dispatchEvent(new Event("mailflare:messages-changed"));
+			if (finishedNow) window.dispatchEvent(new Event("tarle-mail:messages-changed"));
 		})
 		.catch(() => {
 			// Keep the last list; the next poll retries.

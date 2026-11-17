@@ -1,4 +1,4 @@
-export const MAIL_SEARCH_REQUEST_EVENT = "mailflare:mail-search-request";
+export const MAIL_SEARCH_REQUEST_EVENT = "tarle-mail:mail-search-request";
 
 let pending: string | null = null;
 

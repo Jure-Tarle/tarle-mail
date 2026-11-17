@@ -59,12 +59,12 @@ export function useMessageThread(messageId: string, threadId: string | null | un
 				void load();
 			}, 150);
 		}
-		window.addEventListener("mailflare:messages-changed", scheduleLoad);
-		window.addEventListener("mailflare:messages-changed", patchReadState);
+		window.addEventListener("tarle-mail:messages-changed", scheduleLoad);
+		window.addEventListener("tarle-mail:messages-changed", patchReadState);
 		return () => {
 			cancelled = true;
-			window.removeEventListener("mailflare:messages-changed", scheduleLoad);
-			window.removeEventListener("mailflare:messages-changed", patchReadState);
+			window.removeEventListener("tarle-mail:messages-changed", scheduleLoad);
+			window.removeEventListener("tarle-mail:messages-changed", patchReadState);
 			if (refreshTimer) window.clearTimeout(refreshTimer);
 		};
 	}, [messageId, threadId]);

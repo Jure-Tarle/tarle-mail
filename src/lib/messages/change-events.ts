@@ -1,4 +1,4 @@
-export const MESSAGES_CHANGED_EVENT = "mailflare:messages-changed";
+export const MESSAGES_CHANGED_EVENT = "tarle-mail:messages-changed";
 
 export type MessagesChangedDetail = {
 	kind?: "read";

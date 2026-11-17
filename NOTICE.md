@@ -7,8 +7,12 @@ This fork is distributed under the same license.
 
 ## Changes in this fork
 
-- Renamed the deployment (Worker, D1, R2, queues) to `mail-tarle` and the default
-  product name to "Tarle Mail".
+- Renamed the product to "Tarle Mail" throughout (deployment `tarle-mail`, code
+  identifiers, environment variables, storage keys, headers, documentation) and
+  replaced the logo and landing page. Kept on purpose: database trigger and
+  migration-ledger names (`mailflare_*`) used by applied migrations, the
+  upstream push-relay protocol (`ios-relay.mailflare.co`, `mailflare-push-v1`),
+  and references to the upstream project.
 - Removed the Paymug license check and activation flow; every installation runs with
   the full Team feature set (`src/lib/licenses/service.ts`).
 - Disabled upstream's one-click update, which replaced the repository with upstream's

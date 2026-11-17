@@ -59,13 +59,13 @@ function recurrenceRule(event: FeedEvent): string | null {
 
 export function buildCalendarFeed(events: FeedEvent[], options: { name: string; now?: Date }): string {
 	const stamp = utc(options.now ?? new Date());
-	const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Mailflare//Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+	const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TarleMail//Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
 		`X-WR-CALNAME:${escapeIcsText(options.name)}`, "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"];
 	for (const event of events) {
 		const rule = recurrenceRule(event);
 		// Recurring events keep their local clock time across daylight saving changes only when they carry a zone.
 		const zone = rule ? validTimeZone(event.timeZone) : null;
-		lines.push("BEGIN:VEVENT", `UID:${event.id}@mailflare`, `DTSTAMP:${stamp}`,
+		lines.push("BEGIN:VEVENT", `UID:${event.id}@tarle-mail`, `DTSTAMP:${stamp}`,
 			dateProperty("DTSTART", event.startsAt, zone), dateProperty("DTEND", event.endsAt, zone),
 			`SUMMARY:${escapeIcsText(event.title)}`);
 		if (event.description) lines.push(`DESCRIPTION:${escapeIcsText(event.description)}`);

@@ -20,5 +20,5 @@ export async function GET(request: Request) {
 	const events = await getDb(env).select().from(calendarEvents).where(eq(calendarEvents.userId, key.user.id)).orderBy(calendarEvents.startsAt);
 	// Invitations still waiting for an answer are not on the calendar yet, so other apps do not see them.
 	const body = buildCalendarFeed(events.filter((event) => event.responseStatus !== "needs-action").map((event) => ({ ...event, repeat: event.repeat })), { name: "Tarle Mail" });
-	return new Response(body, { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": 'inline; filename="mailflare.ics"', "Cache-Control": "private, max-age=300", "X-Robots-Tag": "noindex" } });
+	return new Response(body, { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": 'inline; filename="tarle-mail.ics"', "Cache-Control": "private, max-age=300", "X-Robots-Tag": "noindex" } });
 }

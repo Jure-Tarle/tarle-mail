@@ -1069,7 +1069,7 @@ export const backupSettings = sqliteTable("backup_settings", {
 
 export const appSettings = sqliteTable("app_settings", {
 	id: text("id").primaryKey(),
-	appName: text("app_name").notNull().default("Mailflare"),
+	appName: text("app_name").notNull().default("Tarle Mail"),
 	outboundAttachmentMaxMb: integer("outbound_attachment_max_mb").notNull().default(25),
 	/** Per-user Drive storage cap in bytes; null means unlimited. */
 	driveStorageLimitBytes: integer("drive_storage_limit_bytes"),
@@ -1083,7 +1083,7 @@ export const appSettings = sqliteTable("app_settings", {
 	smtpConfig: text("smtp_config"),
 	/** JSON: optional daily and monthly recipient caps per sending provider. */
 	providerLimits: text("provider_limits"),
-	/** JSON: the shared SES inbound resources Mailflare created (bucket, topic, rule set, webhook token). */
+	/** JSON: the shared SES inbound resources Tarle Mail created (bucket, topic, rule set, webhook token). */
 	sesReceiving: text("ses_receiving"),
 	resendWebhookId: text("resend_webhook_id"),
 	resendWebhookSecret: text("resend_webhook_secret"),

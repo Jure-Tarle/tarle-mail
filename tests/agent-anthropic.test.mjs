@@ -8,7 +8,7 @@ import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const directory = mkdtempSync(join(root, "node_modules", "mailflare-anthropic-"));
+const directory = mkdtempSync(join(root, "node_modules", "tarle-mail-anthropic-"));
 after(() => rmSync(directory, { recursive: true, force: true }));
 await build({
 	entryPoints: [join(root, "src/lib/agent/model.ts")],

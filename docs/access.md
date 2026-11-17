@@ -32,7 +32,7 @@ To do it by hand: create a **Self-hosted** application for `mail.example.com` wi
 
 ## 3. Set the Worker variables
 
-Copy the team domain and the **Application Audience (AUD) tag** of the `mail.example.com (login)` application (Zero Trust > Access > Applications > Edit > Overview) into the Worker `mail-tarle`: dashboard **Settings > Variables and Secrets**, or `npx wrangler secret put CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD`. `wrangler.jsonc` has `keep_vars`, so dashboard values survive deploys.
+Copy the team domain and the **Application Audience (AUD) tag** of the `mail.example.com (login)` application (Zero Trust > Access > Applications > Edit > Overview) into the Worker `tarle-mail`: dashboard **Settings > Variables and Secrets**, or `npx wrangler secret put CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD`. `wrangler.jsonc` has `keep_vars`, so dashboard values survive deploys.
 
 | Variable | Example |
 | --- | --- |

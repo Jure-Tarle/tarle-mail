@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "mailflare-auto-advance";
-const CHANGE_EVENT = "mailflare:auto-advance-changed";
+const STORAGE_KEY = "tarle-mail-auto-advance";
+const CHANGE_EVENT = "tarle-mail:auto-advance-changed";
 
 function readStored(): boolean {
 	try {
