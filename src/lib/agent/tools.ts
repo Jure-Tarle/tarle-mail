@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { scheduledMessageCondition } from "@/lib/email/scheduled";
 import { getDb } from "@/db";
@@ -198,4 +198,46 @@ export async function runEmailTool(context: AgentToolContext, name: EmailToolNam
 		return { draftId: row.id, status: "discarded" };
 	}
 	throw new Error("Unknown tool");
+}
+
+/** Chat-only: counts for charts, computed in the database instead of from paged email lists. */
+export const emailStatsSchema = z.object({
+	folder: z.enum(["inbox", "sent", "archived", "spam", "all"]).default("inbox"),
+	days: z.number().int().min(1).max(90).default(7).describe("How many days back from today, in the user's timezone"),
+	groupBy: z.enum(["sender", "day"]).describe("sender: the senders with most emails; day: emails per day"),
+	top: z.number().int().min(1).max(15).default(8).describe("With groupBy sender: how many senders to list; the rest is summed as other"),
+});
+
+const STATS_ROW_LIMIT = 5_000;
+
+export async function runEmailStats(context: AgentToolContext, rawInput: unknown) {
+	const input = emailStatsSchema.parse(rawInput);
+	await requireAccess(context);
+	const zone = context.timeZone || "UTC";
+	const dayKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+	const since = new Date(Date.now() - input.days * 86_400_000);
+	const conditions = [eq(messages.mailboxId, context.mailboxId), gte(messages.createdAt, since)];
+	if (input.folder === "inbox") conditions.push(eq(messages.status, "received"), isNull(messages.folderId));
+	else if (input.folder === "sent") conditions.push(eq(messages.status, "sent"));
+	else if (input.folder === "archived" || input.folder === "spam") conditions.push(eq(messages.status, input.folder));
+	else conditions.push(or(eq(messages.status, "received"), eq(messages.status, "sent"), eq(messages.status, "archived"))!);
+	const rows = await getDb(context.env).select({ fromAddr: messages.fromAddr, createdAt: messages.createdAt }).from(messages).where(and(...conditions)).orderBy(desc(messages.createdAt)).limit(STATS_ROW_LIMIT);
+	const truncated = rows.length === STATS_ROW_LIMIT;
+	if (input.groupBy === "day") {
+		const counts = new Map<string, number>();
+		for (let offset = input.days - 1; offset >= 0; offset--) counts.set(dayKey(new Date(Date.now() - offset * 86_400_000)), 0);
+		for (const row of rows) { const key = dayKey(row.createdAt); if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1); }
+		return { folder: input.folder, timeZone: zone, days: [...counts].map(([date, count]) => ({ date, count })), total: rows.length, truncated };
+	}
+	const counts = new Map<string, { sender: string; count: number }>();
+	for (const row of rows) {
+		const address = (/<([^>]+)>/.exec(row.fromAddr)?.[1] ?? row.fromAddr).trim().toLowerCase();
+		const entry = counts.get(address) ?? { sender: address, count: 0 };
+		entry.count += 1;
+		counts.set(address, entry);
+	}
+	const sorted = [...counts.values()].sort((a, b) => b.count - a.count);
+	const top = sorted.slice(0, input.top);
+	const other = sorted.slice(input.top).reduce((sum, entry) => sum + entry.count, 0);
+	return { folder: input.folder, days: input.days, senders: top, other, total: rows.length, truncated };
 }

@@ -8,9 +8,10 @@ import { ANTHROPIC_CACHE_BREAKPOINT, agentSystemPrompt, agentTurnContext, getAge
 import { agentProviderErrorMessage } from "./errors";
 import { getAgentEnabled } from "./provider";
 import { recordAiUsage } from "@/lib/ai/usage";
-import { EMAIL_TOOL_NAMES, emailToolDescriptions, emailToolSchemas, runEmailTool } from "./tools";
+import { EMAIL_TOOL_NAMES, emailStatsSchema, emailToolDescriptions, emailToolSchemas, runEmailStats, runEmailTool } from "./tools";
 import type { AgentToolContext } from "./types";
 import { normalizeTimeZone } from "@/lib/time/utils";
+import { agentVisualProblem, agentVisualSchema } from "./visual-schema";
 import { CALENDAR_TOOL_NAMES, calendarToolDescriptions, calendarToolSchemas, runCalendarTool } from "@/lib/calendar/tools";
 
 export async function getAgentConversation(context: AgentToolContext, conversationId: string) {
@@ -67,7 +68,24 @@ export async function createAgentChatStream(context: AgentToolContext, text: str
 	}])) : {};
 	// Prompt caching (Anthropic): breakpoints after the tools, after the system prompt and on the newest user
 	// turn, so the tool loop's later steps and follow-up turns read the shared prefix from the cache.
-	const toolSet: Record<string, object> = { ...tools, ...calendarTools };
+	// Chat-only tools: counts for charts, and showing a chart or table in the conversation.
+	const chatTools = {
+		email_stats: {
+			description: "Count emails in this mailbox over the last days, either per sender (the top senders plus the rest) or per day. Use this for questions about how many emails, from whom or when, and as the data for a chart.",
+			inputSchema: emailStatsSchema,
+			execute: async (input: unknown) => runEmailStats(context, input),
+		},
+		show_visual: {
+			description: "Show a small bar chart, line chart or table in the chat. Use it when numbers or a comparison are clearer as a picture: amounts per sender as a bar chart, emails per day as a line chart, several attributes per item as a table. Only show numbers taken from tool results, never estimates. Keep it small (at most 4 series, 31 points, 30 rows) and still answer in one or two sentences of text.",
+			inputSchema: agentVisualSchema,
+			execute: async (input: unknown) => {
+				const visual = agentVisualSchema.parse(input);
+				const problem = agentVisualProblem(visual);
+				return problem ? { status: "invalid", error: problem } : { status: "shown", visual };
+			},
+		},
+	};
+	const toolSet: Record<string, object> = { ...tools, ...calendarTools, ...chatTools };
 	const toolNames = Object.keys(toolSet);
 	if (toolNames.length) toolSet[toolNames[toolNames.length - 1]] = { ...toolSet[toolNames[toolNames.length - 1]], providerOptions: ANTHROPIC_CACHE_BREAKPOINT };
 	const lastTurn = prompt[prompt.length - 1];

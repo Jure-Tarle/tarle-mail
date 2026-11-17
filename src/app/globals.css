@@ -525,3 +525,7 @@ button {
 	from { opacity: 0; transform: translateY(16px); }
 	to { opacity: 1; transform: none; }
 }
+
+/* Chat charts: categorical hues in fixed order, validated for colour-vision deficiency on each surface. */
+.agent-viz { --viz-1: #2a78d6; --viz-2: #eb6834; --viz-3: #1baf7a; --viz-4: #eda100; --viz-grid: #dadce0; --viz-surface: #ffffff; }
+.dark .agent-viz { --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #c98500; --viz-grid: #4a4d51; --viz-surface: #292a2d; }

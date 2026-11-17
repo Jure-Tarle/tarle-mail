@@ -9,6 +9,7 @@ import { useLanguage } from "@/components/language-provider";
 import type { AgentTurnProps } from "./types";
 import { agentDraftIdFromHref, formatAgentDuration } from "./utils";
 import { AgentDraftActions, AgentPendingActions, AgentToolActivity } from "./tool-activity";
+import { AgentVisualCard, agentVisualFromToolContent } from "./agent-visual";
 
 export function AgentTurnView({ turn, draftActions, onOpenDraft, onApproveDraft, onApproveAction, approvingId }: AgentTurnProps) {
 	const { t } = useLanguage();
@@ -27,6 +28,7 @@ export function AgentTurnView({ turn, draftActions, onOpenDraft, onApproveDraft,
 		{(turn.assistant || turn.activity.length > 0) && <div className="space-y-3">
 			{turn.running ? turn.activity.length > 0 && <div className="text-neutral-500">{workContent}</div> : <details open={workOpen} onToggle={(event) => setWorkOpen(event.currentTarget.open)} className="group/process text-neutral-500"><summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 py-1 [&::-webkit-details-marker]:hidden"><Clock3 size={13} className="text-neutral-400" aria-hidden="true" /><span>{turn.durationMs !== null ? t("agent.turn.workedFor", { duration: formatAgentDuration(turn.durationMs) }) : t("agent.turn.workDetails")}</span><ChevronDown size={13} className="transition-transform group-open/process:rotate-180" aria-hidden="true" /></summary>{workContent}</details>}
 			{turn.assistant?.content && <div className="break-words text-sm leading-relaxed text-neutral-900 [&_a]:text-blue-700 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-3 message-content"><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ img: () => null, a: ({ href, children }) => { const draftId = agentDraftIdFromHref(href); return draftId ? <Link href={`/drafts/${encodeURIComponent(draftId)}`}>{children}</Link> : href?.startsWith("/") && !href.startsWith("//") ? <Link href={href}>{children}</Link> : <a href={href}>{children}</a>; } }}>{turn.assistant.content}</ReactMarkdown></div>}
+			{turn.activity.map((item) => item.role === "tool" && item.toolName === "show_visual" ? { id: item.id, visual: agentVisualFromToolContent(item.content) } : null).map((entry) => entry?.visual && <AgentVisualCard key={`${entry.id}:visual`} visual={entry.visual} />)}
 			{turnDraftActions.map((action) => <AgentDraftActions key={action.draftId} action={action} onOpenDraft={onOpenDraft} onApproveDraft={onApproveDraft} approvingId={approvingId} />)}
 			{turn.activity.filter((item) => item.role === "tool").map((item) => <AgentPendingActions key={`${item.id}:actions`} item={item} onApproveAction={onApproveAction} approvingId={approvingId} />)}
 		</div>}
