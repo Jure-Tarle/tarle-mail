@@ -385,6 +385,13 @@
         "ALTER TABLE \"app_settings\" ADD COLUMN \"default_mailbox_storage_limit_bytes\" bigint;",
         "ALTER TABLE \"app_settings\" ADD COLUMN \"default_mailbox_daily_send_limit\" bigint;"
       ]
+    },
+    {
+      "name": "0014_user_mailbox_order.sql",
+      "statements": [
+        "CREATE TABLE \"user_mailbox_order\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"mailbox_ids\" text NOT NULL,\n\t\"updated_at\" bigint NOT NULL\n);",
+        "ALTER TABLE \"user_mailbox_order\" ADD CONSTRAINT \"user_mailbox_order_user_id_users_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"users\"(\"id\") ON DELETE cascade ON UPDATE no action;"
+      ]
     }
   ]
 }

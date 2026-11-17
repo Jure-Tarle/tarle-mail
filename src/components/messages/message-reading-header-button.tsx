@@ -25,13 +25,15 @@ export function MessageReadingHeaderButton({ assistantVisible }: MessageReadingH
 		<Tooltip label={label} className={singleColumn ? "inline-flex" : "hidden lg:inline-flex"}>
 			<button
 				type="button"
-				className={clsx(!singleColumn && assistantVisible ? "opacity-40" : !singleColumn && !visible ? "opacity-60 hover:opacity-100" : "", (singleColumn || !assistantVisible) && "hover:bg-neutral-100 hover:text-neutral-900", "relative z-10 shrink-0 rounded-full p-2 text-neutral-600 duration-200")}
+				className={clsx(!singleColumn && assistantVisible ? "opacity-40" : !singleColumn && !visible ? "opacity-60 hover:opacity-100" : "", (singleColumn || !assistantVisible) && "hover:bg-neutral-100 hover:text-neutral-900", "relative z-10 flex shrink-0 items-center gap-1.5 rounded-full p-2 text-neutral-600 duration-200", singleColumn && "max-lg:-ml-2 max-lg:min-h-11 max-lg:pr-3 max-lg:text-blue-700")}
 				onClick={handleClick}
 				disabled={!singleColumn && assistantVisible}
 				aria-label={label ?? t("message.nav.listUnavailable")}
 				aria-pressed={singleColumn ? undefined : visible}
 			>
-				{singleColumn ? <ArrowLeft size={16} /> : <Columns2 size={16} />}
+				{singleColumn ? <ArrowLeft size={16} className="max-lg:h-5 max-lg:w-5" /> : <Columns2 size={16} />}
+				{/* On phones and tablets the way back names where it goes, as in iOS Mail. */}
+				{singleColumn && <span className="max-w-[9rem] truncate text-[15px] font-medium lg:hidden">{backLabel}</span>}
 			</button>
 		</Tooltip>
 	);

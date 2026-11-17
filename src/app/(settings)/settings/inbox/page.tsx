@@ -3,6 +3,7 @@ import { SettingsPanel } from "@/components/ui/settings-panel";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { InboxThreadingSettings } from "@/components/settings/inbox-threading-settings";
 import { RemoteContentSettings } from "@/components/settings/remote-content-settings";
+import { MailboxOrderSettings } from "@/components/settings/mailbox-order-settings";
 import { RecipientAddressSettings } from "@/components/settings/recipient-address-settings";
 import { ComposeDefaultsSettings } from "@/components/settings/compose-defaults-settings";
 import { InboxReadingLayoutSettings } from "@/components/settings/inbox-reading-layout-settings";
@@ -24,6 +25,9 @@ export default async function SettingsInboxPage() {
 					<p className="mt-1 text-sm text-neutral-500">{t("settingsPage.inbox.experienceDescription")}</p>
 				</div>
 				<div className="space-y-6">
+					<SettingsPanel id="mailbox-order" title={t("settings.mailboxOrder.title")} description={t("settings.mailboxOrder.description")}>
+						<MailboxOrderSettings />
+					</SettingsPanel>
 					<SettingsPanel title={t("settingsPage.inbox.appearance")} description={t("settingsPage.inbox.appearanceDescription")}>
 						<AppearanceSettings />
 					</SettingsPanel>

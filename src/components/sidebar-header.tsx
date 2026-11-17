@@ -7,7 +7,6 @@ import { useSidebar } from "./sidebar-state";
 import type { SidebarHeaderProps } from "./sidebar-state-types";
 import { Tooltip } from "./ui/tooltip";
 import { useLanguage } from "./language-provider";
-import { ModeSwitch } from "./mode-switch";
 
 export function SidebarHeader({ href, label }: SidebarHeaderProps) {
 	const { t } = useLanguage();
@@ -22,8 +21,6 @@ export function SidebarHeader({ href, label }: SidebarHeaderProps) {
 			{minimal ? <Tooltip label={t("navigation.expandMenu")} placement="right">{toggleButton}</Tooltip> : toggleButton}
 			{!minimal && <Link href={href} className="flex min-w-0 items-center gap-3"><img src={branding.iconUrl} height={32} width={32} alt="" /><span className="truncate text-lg font-semibold text-neutral-800">{label ?? branding.appName}</span></Link>}
 		</div>
-		{/* The phone header has no room for it, so on phones the switch sits in the menu drawer. */}
-		<ModeSwitch className="mb-3 ml-1 w-fit md:hidden" />
 		</>
 	);
 }

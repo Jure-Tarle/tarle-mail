@@ -51,6 +51,7 @@ import {
 	PartialDeleteError,
 	supportsPermanentDelete,
 } from "@/lib/messages/permanent-delete-utils";
+import { getMailboxColors, getMailboxShortLabels } from "@/components/mailbox-colors";
 import clsx from "clsx";
 import { DueFollowUps } from "@/components/follow-ups/due-follow-ups";
 import { MailboxStorageBanner } from "./mailbox-storage-banner";
@@ -90,7 +91,7 @@ function MessageListRowComponent({
 	onOpening,
 	dragMessageIds,
 	todayKey,
-	mailboxLabel,
+	mailboxTag,
 }: MessageListRowProps) {
 	const { t } = useLanguage();
 	const Icon = config.icon;
@@ -207,7 +208,8 @@ function MessageListRowComponent({
 							)}
 							<NoteBadge count={message.noteCount} className="ml-2" />
 						</span>
-						<span className={clsx(unread ?"font-medium":"text-neutral-500","shrink-0 text-[11px]")}>
+						<span className={clsx(unread ?"font-medium":"text-neutral-500","flex shrink-0 items-baseline gap-2 text-[11px]")}>
+							{mailboxTag && <MailboxTag tag={mailboxTag} />}
 							<OpenedIndicator count={message.openCount} />
 							{message.scheduledAt ? formatScheduledSendTime(message.scheduledAt, t) : formatMessageListTimestamp(message.createdAt, todayKey)}
 						</span>
@@ -216,7 +218,6 @@ function MessageListRowComponent({
 						className={`mt-1 block truncate text-sm ${unread ? "font-semibold text-neutral-900" : "text-neutral-700"
 							}`}
 					>
-						{mailboxLabel && <MailboxChip label={mailboxLabel} />}
 						{message.subject ?? t("list.noSubject")}
 					</span>
 					<span className="mt-0.5 block truncate text-xs leading-5 text-neutral-500">
@@ -248,7 +249,7 @@ function MessageListRowComponent({
 	}
 
 	const className =
-		`group relative grid min-h-12 w-full grid-cols-[24px_32px_minmax(160px,80px)_1fr_auto] items-center gap-3 px-6 text-left text-sm hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset has-[a:focus-visible]:ring-blue-600 ${active || selected || opening ? "bg-blue-50" : ""
+		`group relative grid min-h-12 w-full ${mailboxTag ? "grid-cols-[24px_32px_minmax(160px,80px)_8.5rem_1fr_auto]" : "grid-cols-[24px_32px_minmax(160px,80px)_1fr_auto]"} items-center gap-3 px-6 text-left text-sm hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset has-[a:focus-visible]:ring-blue-600 ${active || selected || opening ? "bg-blue-50" : ""
 		} ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`;
 	const content = (
 		<>
@@ -280,6 +281,7 @@ function MessageListRowComponent({
 					<span className="ml-2 text-xs text-neutral-500">{message.threadCount}</span>
 				)}
 			</span>
+			{mailboxTag && <MailboxTag tag={mailboxTag} />}
 			<span className="flex min-w-0 items-center text-neutral-700">
 				{/* A fixed slot keeps every subject aligned, with or without notes. */}
 				<span className="w-11 shrink-0">
@@ -296,7 +298,6 @@ function MessageListRowComponent({
 					aria-current={active ? "true" : undefined}
 					className="min-w-0 truncate focus-visible:outline-none after:absolute after:inset-0"
 				>
-					{mailboxLabel && <MailboxChip label={mailboxLabel} />}
 					<span className={unread ? "font-semibold text-neutral-900" : ""}>
 						{rowMessage.subject ?? t("list.noSubject")}
 					</span>
@@ -357,11 +358,12 @@ function MessageListRowComponent({
 
 const MessageListRow = memo(MessageListRowComponent);
 
-/** Marks which mailbox a row belongs to while the list combines all mailboxes. */
-function MailboxChip({ label }: { label: string }) {
+/** Which mailbox a row arrived in, while the list combines all mailboxes: its colour dot and short name. */
+function MailboxTag({ tag }: { tag: { label: string; address: string; color: string } }) {
 	return (
-		<span title={label} className="mr-2 inline-block max-w-[11rem] truncate rounded bg-blue-50 px-1.5 align-[1px] text-[11px] font-medium leading-4 text-blue-700">
-			{label}
+		<span title={tag.address} className="flex min-w-0 items-center gap-1.5 text-xs font-normal text-neutral-500">
+			<span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
+			<span className="truncate">{tag.label}</span>
 		</span>
 	);
 }
@@ -416,10 +418,11 @@ export function MessageFolderPage({
 		group: grouped ? "thread" : undefined,
 	}, !mailboxesLoading, config.folderId);
 	const { counts } = useMessageCounts(listMailboxId, !mailboxesLoading);
-	const mailboxLabels = useMemo(
-		() => new Map(mailboxes.map((mailbox) => [mailbox.id, `${mailbox.localPart}@${mailbox.hostname}`])),
-		[mailboxes],
-	);
+	const mailboxTags = useMemo(() => {
+		const colors = getMailboxColors(mailboxes);
+		const labels = getMailboxShortLabels(mailboxes);
+		return new Map(mailboxes.map((mailbox) => [mailbox.id, { label: labels.get(mailbox.id) ?? mailbox.localPart, address: `${mailbox.localPart}@${mailbox.hostname}`, color: colors.get(mailbox.id) ?? "#64748b" }]));
+	}, [mailboxes]);
 	usePageLoading(mailboxesLoading || isLoading, true);
 	const headerIcons = config.headerIcons ?? [];
 	const hasActiveFilters = !!query.trim();
@@ -716,7 +719,7 @@ export function MessageFolderPage({
 							onMessageAction={handleMessageAction}
 							dragMessageIds={selectedIdSet.has(message.id) ? selectedDragIds : undefined}
 							todayKey={todayKey}
-							mailboxLabel={showAllMailboxes && message.mailboxId ? mailboxLabels.get(message.mailboxId) : undefined}
+							mailboxTag={showAllMailboxes && message.mailboxId ? mailboxTags.get(message.mailboxId) : undefined}
 						/>
 					))}
 				</div>

@@ -15,7 +15,7 @@ export const settingsNavSections: SettingsNavSection[] = [
 				href: "/settings/inbox",
 				labelKey: "settings.nav.inbox",
 				icon: Inbox,
-				searchKeys: ["settings.theme.label", "settingsPage.inbox.remoteContent", "settings.recipient.title", "settings.compose.trackOpensTitle"],
+				searchKeys: ["settings.mailboxOrder.title", "settings.theme.label", "settingsPage.inbox.remoteContent", "settings.recipient.title", "settings.compose.trackOpensTitle"],
 			},
 			{
 				href: "/settings/security",

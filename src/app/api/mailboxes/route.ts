@@ -9,13 +9,15 @@ import { getLicenseEntitlements } from "@/lib/licenses/service";
 import { tracksAccountIdentity } from "@/lib/profile/identity-utils";
 import { mailboxSchema } from "@/lib/validators";
 import { ensureMailboxDomainRouting, getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
+import { readMailboxOrder } from "@/lib/mailboxes/order";
+import { sortByMailboxOrder } from "@/lib/mailboxes/order-utils";
 import { ensurePersonalMailbox } from "./utils";
 
 export async function GET(request: Request) {
 	const env = getEnv();
 	const user = await requireUser(env, request);
 	const db = getDb(env);
-	const rows = await ensurePersonalMailbox(env, db, user);
+	const rows = sortByMailboxOrder(await ensurePersonalMailbox(env, db, user), await readMailboxOrder(db, user.id));
 	const entitlements = await getLicenseEntitlements(env);
 	return NextResponse.json({
 		mailboxes: await Promise.all(rows.map(async (mailbox) => ({

@@ -12,6 +12,7 @@ export function useSheetViewport(ref: RefObject<HTMLElement | null>, enabled: bo
 		function update() {
 			if (!viewport || !element) return;
 			const style = getSheetViewportStyle(window.innerHeight, viewport.height, viewport.offsetTop);
+			element.style.setProperty("--sheet-top", style.top);
 			element.style.setProperty("--sheet-height", style.height);
 			element.style.setProperty("--sheet-bottom", style.bottom);
 			element.style.setProperty("--sheet-pad", style.padding);

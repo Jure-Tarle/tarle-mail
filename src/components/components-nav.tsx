@@ -73,7 +73,8 @@ export function NavItem({ link, iconClassName, labelClassName, wrap }: Props) {
       <button
         type="button"
         onClick={() => openComposer()}
-        className={cn(!minimal && "ml-3", classes)}
+        // As wide as the mailbox switcher below it, so the top of the sidebar lines up.
+        className={cn(classes, !minimal && "mx-3 w-auto text-left")}
         aria-label={minimal ? link.label : undefined}
         {...dropProps}
       >

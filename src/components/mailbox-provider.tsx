@@ -16,6 +16,7 @@ import {
 } from "./mailbox-provider-utils";
 import {
 	AUTH_SESSION_CHANGED_EVENT,
+	authFetch,
 	getClientSessionToken,
 } from "@/lib/auth/client";
 import { PROFILE_NAME_CHANGED_EVENT } from "@/lib/profile/name-client";
@@ -49,6 +50,8 @@ type MailboxContextValue = {
 	setShowAllMailboxes: (showAll: boolean) => void;
 	/** The mailbox lists and counters filter by: the selected one, or undefined for all of them. */
 	listMailboxId: string | undefined;
+	/** Puts the mailboxes in this order everywhere and saves it for the user. */
+	reorderMailboxes: (mailboxIds: string[]) => Promise<void>;
 };
 
 const SHOW_ALL_MAILBOXES_STORAGE_KEY = "tarle-mail:show-all-mailboxes";
@@ -174,11 +177,29 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 			// See above.
 		}
 	}, []);
+	const reorderMailboxes = useCallback(async (mailboxIds: string[]) => {
+		const rank = new Map(mailboxIds.map((id, index) => [id, index]));
+		let previous: MailboxOption[] = [];
+		setMailboxes((items) => {
+			previous = items;
+			return [...items].sort((a, b) => (rank.get(a.id) ?? mailboxIds.length) - (rank.get(b.id) ?? mailboxIds.length));
+		});
+		clearMailboxesCache();
+		const response = await authFetch("/api/mailboxes/order", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ mailboxIds }),
+		});
+		if (!response.ok) {
+			setMailboxes(previous);
+			throw new Error("Failed to save the mailbox order");
+		}
+	}, []);
 	const showAllMailboxes = showAllChoice && mailboxes.length > 1;
 	const listMailboxId = showAllMailboxes ? undefined : selectedMailbox?.id;
 
 	return (
-		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading, showAllMailboxes, setShowAllMailboxes, listMailboxId }}>
+		<MailboxContext.Provider value={{ selectedMailbox, setSelectedMailbox, mailboxes, isLoading, showAllMailboxes, setShowAllMailboxes, listMailboxId, reorderMailboxes }}>
 			{children}
 		</MailboxContext.Provider>
 	);

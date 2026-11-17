@@ -6,6 +6,7 @@ import { AtSign, Check, ChevronDown, Inbox } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import type { MailboxOption } from "@/components/mailbox-provider";
+import { getMailboxColors } from "@/components/mailbox-colors";
 import { useMessageCounts } from "@/hooks/use-message-counts";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ export function MailboxesNavSection() {
 	const multiple = mailboxes.length > 1;
 	const { counts } = useMessageCounts(null, multiple && !isLoading);
 	if (!selectedMailbox) return null;
+	const colors = getMailboxColors(mailboxes);
+	const colorDot = (id: string) => <span className="flex h-4 w-4 items-center justify-center"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.get(id) }} /></span>;
 
 	const unreadByMailbox = new Map(counts.mailboxes.map((item) => [item.mailboxId, item.inboxUnread ?? 0]));
 	const totalUnread = counts.mailboxes.reduce((sum, item) => sum + (item.inboxUnread ?? 0), 0);
@@ -39,7 +42,7 @@ export function MailboxesNavSection() {
 
 	const summary = (
 		<>
-			<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+			<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700" style={showAllMailboxes || !multiple ? undefined : { color: colors.get(selectedMailbox.id) }}>
 				{showAllMailboxes ? <Inbox size={16} strokeWidth={2} /> : <AtSign size={16} strokeWidth={2} />}
 			</span>
 			<span className="min-w-0 flex-1">
@@ -91,7 +94,7 @@ export function MailboxesNavSection() {
 						<MailboxMenuItem
 							key={mailbox.id}
 							active={!showAllMailboxes && selectedMailbox.id === mailbox.id}
-							icon={<AtSign size={16} strokeWidth={2} />}
+							icon={colorDot(mailbox.id)}
 							title={mailboxName(mailbox)}
 							subtitle={mailboxAddress(mailbox)}
 							count={unreadByMailbox.get(mailbox.id) ?? 0}

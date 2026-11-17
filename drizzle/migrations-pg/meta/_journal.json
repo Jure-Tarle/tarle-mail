@@ -99,6 +99,13 @@
       "when": 1793280384890,
       "tag": "0013_mailbox_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793366784890,
+      "tag": "0014_user_mailbox_order",
+      "breakpoints": true
     }
   ]
 }

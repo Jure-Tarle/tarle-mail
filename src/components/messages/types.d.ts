@@ -32,8 +32,8 @@ export type MessageListRowProps = {
 	onOpening?: (messageId: string) => void;
 	dragMessageIds?: string[];
 	todayKey: string;
-	/** The receiving mailbox's address, shown while the list combines all mailboxes. */
-	mailboxLabel?: string;
+	/** The receiving mailbox, shown while the list combines all mailboxes. */
+	mailboxTag?: { label: string; address: string; color: string };
 };
 
 export type RowMessageAction = "archive" | "trash" | "read" | "unread";

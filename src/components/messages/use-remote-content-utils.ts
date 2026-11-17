@@ -49,3 +49,20 @@ export async function allowRemoteContentFromSender(sender: string): Promise<void
 	});
 	if (!response.ok) throw new Error("Failed to remember sender");
 }
+
+export async function loadAllowedRemoteContentSenders(): Promise<string[]> {
+	const response = await authFetch(`${ENDPOINT}?senders=1`);
+	const data = (await response.json()) as { senders?: string[]; error?: string };
+	if (!response.ok || !Array.isArray(data.senders)) throw new Error(typeof data.error === "string" ? data.error : "Failed to load allowed senders");
+	return data.senders;
+}
+
+export async function forgetRemoteContentSender(sender: string): Promise<void> {
+	const response = await authFetch(ENDPOINT, {
+		method: "DELETE",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ sender }),
+	});
+	if (!response.ok) throw new Error("Failed to forget sender");
+	window.dispatchEvent(new Event(REMOTE_CONTENT_CHANGE_EVENT));
+}

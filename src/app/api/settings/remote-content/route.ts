@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getDb } from "@/db";
@@ -14,7 +14,17 @@ export async function GET(request: Request) {
 	const auth = await requireSessionUser(env, request);
 	if (auth.error) return auth.error;
 	const mode = auth.user.remoteContentMode;
-	const sender = new URL(request.url).searchParams.get("sender")?.trim().toLowerCase();
+	const params = new URL(request.url).searchParams;
+	// `?senders=1` lists the senders whose remote content the user has allowed, for the settings page.
+	if (params.get("senders") === "1") {
+		const rows = await getDb(env)
+			.select({ email: contacts.email })
+			.from(contacts)
+			.where(and(eq(contacts.userId, auth.user.id), eq(contacts.remoteContentAllowed, true)))
+			.orderBy(asc(contacts.email));
+		return NextResponse.json({ mode, senders: rows.map((row) => row.email) });
+	}
+	const sender = params.get("sender")?.trim().toLowerCase();
 	if (!sender || mode !== "new_sender") return NextResponse.json({ mode });
 	const [contact] = await getDb(env)
 		.select({ allowed: contacts.remoteContentAllowed, source: contacts.source })
@@ -60,4 +70,24 @@ export async function POST(request: Request) {
 		.values({ id: getContactId(auth.user.id, sender), userId: auth.user.id, email: sender, source: "inbound", remoteContentAllowed: true })
 		.onConflictDoUpdate({ target: [contacts.userId, contacts.email], set: { remoteContentAllowed: true } });
 	return NextResponse.json({ senderAllowed: true });
+}
+
+// Forgets that the user allowed remote content from this sender; the next message asks again.
+export async function DELETE(request: Request) {
+	const env = getEnv();
+	const auth = await requireSessionUser(env, request);
+	if (auth.error) return auth.error;
+
+	let sender: string;
+	try {
+		({ sender } = trustRemoteContentSenderSchema.parse(await request.json()));
+	} catch (error) {
+		return NextResponse.json({ error: error instanceof ZodError ? error.flatten() : "Invalid request" }, { status: 400 });
+	}
+
+	await getDb(env)
+		.update(contacts)
+		.set({ remoteContentAllowed: false })
+		.where(and(eq(contacts.userId, auth.user.id), eq(contacts.email, sender.trim().toLowerCase())));
+	return NextResponse.json({ senderAllowed: false });
 }

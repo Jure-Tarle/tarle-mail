@@ -786,8 +786,34 @@ export function ComposeForm({
 		</div>
 	);
 
+	// Send with the schedule menu: in the footer on larger screens, in the header on phones (as in iOS Mail),
+	// where the keyboard covers the bottom of the screen.
+	const sendGroup = (
+		<div className="flex items-center">
+			<Button
+				type="submit"
+				size="sm"
+				disabled={loading || loadingDraft || !fromAddr}
+				className="rounded-r-none px-4 max-md:h-10 max-md:px-4"
+			>
+				{loading ? t("compose.preparing") : scheduledAt ? t("compose.schedule") : agentRevision !== null ? t("compose.reviewSend") : t("compose.send")}
+			</Button>
+			<ScheduleSendMenu
+				disabled={loading || loadingDraft || !fromAddr}
+				value={scheduledAt}
+				onChange={setScheduledAt}
+				mailboxId={selectedMailbox?.id}
+				from={fromAddr}
+				onApplyTemplate={({ title, html: templateHtml }) => {
+					setSubject((current) => current.trim() ? current : title);
+					setHtml((current) => (hasMeaningfulHtml(current) ? `${current}${templateHtml}` : templateHtml));
+				}}
+			/>
+		</div>
+	);
+
 	// Below md the popup is a bottom sheet: full width, anchored to the visual viewport (so the keyboard never covers the toolbar) and padded by the bottom safe area.
-	const sheetClass = "compose-sheet max-md:inset-x-0 max-md:bottom-[var(--sheet-bottom,0px)] max-md:left-0 max-md:right-0 max-md:top-auto max-md:z-50 max-md:h-[var(--sheet-height,100dvh)] max-md:w-full max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[var(--sheet-pad,max(env(safe-area-inset-bottom),1rem))]";
+	const sheetClass = "compose-sheet max-md:inset-x-0 max-md:bottom-auto max-md:left-0 max-md:right-0 max-md:top-[var(--sheet-top,0px)] max-md:z-50 max-md:h-[var(--sheet-height,100dvh)] max-md:w-full max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[var(--sheet-pad,max(env(safe-area-inset-bottom),1rem))]";
 	const frameClass =
 		mode === "popup"
 			? minimized
@@ -820,8 +846,13 @@ export function ComposeForm({
 						{t("compose.dropFiles")}
 					</div>
 				)}
-				<div {...sheetDrag} className="flex h-9 shrink-0 items-center justify-between max-md:h-12 max-md:touch-none bg-neutral-800 text-white dark:bg-neutral-100 px-4 text-sm font-medium">
-					<span className="flex min-w-0 items-center gap-2 truncate  dark:text-neutral-900">
+				<div {...sheetDrag} className="flex h-9 shrink-0 items-center justify-between gap-3 bg-neutral-800 px-4 text-sm font-medium text-white dark:bg-neutral-100 max-md:h-14 max-md:touch-none max-md:border-b max-md:border-neutral-200 max-md:bg-white max-md:pl-2 max-md:pr-3 max-md:text-base max-md:text-neutral-900">
+					{mode === "popup" && (
+						<button type="button" onClick={dismiss} aria-label={t("compose.close")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-neutral-700 hover:bg-neutral-100 md:hidden">
+							<X className="h-5 w-5" />
+						</button>
+					)}
+					<span className="flex min-w-0 flex-1 items-center gap-2 truncate dark:text-neutral-900 max-md:font-semibold">
 						{threading?.inReplyTo && <Reply className="h-3.5 w-3.5 text-neutral-300" />}
 						{!threading?.inReplyTo && /^fwd?:/i.test(subject) && <Forward className="h-3.5 w-3.5 text-neutral-300" />}
 						{loadingDraft
@@ -839,11 +870,12 @@ export function ComposeForm({
 							<button type="button" onClick={() => { setMinimized((current) => !current); setDraggingFiles(false); }} aria-label={minimized ? t("compose.restore") : t("compose.minimize")} title={minimized ? t("compose.restore") : t("compose.minimize")} className="max-md:hidden rounded p-1 hover:bg-neutral-700 dark:hover:bg-neutral-200 hover:text-white">
 								{minimized ? <ChevronUp className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
 							</button>
-							<button type="button" onClick={dismiss} aria-label={t("compose.close")} className="rounded p-1 max-md:-m-2 max-md:p-3 hover:bg-neutral-700 dark:hover:bg-neutral-200 hover:text-white">
+							<button type="button" onClick={dismiss} aria-label={t("compose.close")} className="rounded p-1 max-md:hidden hover:bg-neutral-700 dark:hover:bg-neutral-200 hover:text-white">
 								<X className="h-4 w-4" />
 							</button>
 						</div>
 					)}
+					{mode === "popup" && <div className="shrink-0 md:hidden">{sendGroup}</div>}
 				</div>
 				<div className={cn("flex min-h-0 flex-1 flex-col", minimized && "hidden")}>
 				<div className="border-b border-neutral-100 px-4 py-1 flex flex-row items-center">
@@ -936,30 +968,7 @@ export function ComposeForm({
 					footerContent={attachmentContent}
 					toolbarStart={
 						<div className="flex items-center max-md:contents">
-							<Button type="button" variant="secondary" size="sm" onClick={dismiss} className="md:hidden max-md:h-10 max-md:px-3.5 max-md:text-[15px]">
-								{t("common.cancel")}
-							</Button>
-							<div className="flex items-center max-md:order-last max-md:ml-auto">
-								<Button
-									type="submit"
-									size="sm"
-									disabled={loading || loadingDraft || !fromAddr}
-									className="rounded-r-none px-4 max-md:h-10 max-md:px-5 max-md:text-[15px]"
-								>
-									{loading ? t("compose.preparing") : scheduledAt ? t("compose.schedule") : agentRevision !== null ? t("compose.reviewSend") : t("compose.send")}
-								</Button>
-								<ScheduleSendMenu
-									disabled={loading || loadingDraft || !fromAddr}
-									value={scheduledAt}
-									onChange={setScheduledAt}
-									mailboxId={selectedMailbox?.id}
-									from={fromAddr}
-									onApplyTemplate={({ title, html: templateHtml }) => {
-										setSubject((current) => current.trim() ? current : title);
-										setHtml((current) => (hasMeaningfulHtml(current) ? `${current}${templateHtml}` : templateHtml));
-									}}
-								/>
-							</div>
+							<div className="max-md:hidden">{sendGroup}</div>
 						</div>
 					}
 					toolbarEnd={

@@ -7,6 +7,7 @@ import { Check, LogOut, Settings, ShieldCheck, UserPlus, UserRound } from "@/com
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDismissible } from "@/components/use-dismissible";
 import { AppsMenu } from "@/components/apps-menu";
+import { ModeSwitch } from "@/components/mode-switch";
 import { useLanguage } from "@/components/language-provider";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { ProgressiveAvatarImage } from "@/components/progressive-avatar-image";
@@ -316,6 +317,10 @@ export function MailboxSelector({ initialUser }: MailboxSelectorProps = {}) {
 						</div>
 					</div>
 
+					{/* The phone header has no room for the Mail/Admin switch, so on phones it lives here. */}
+					<div className="mt-2 flex justify-center md:hidden" onClick={() => setOpen(false)}>
+						<ModeSwitch />
+					</div>
 					<div className="mt-2 overflow-hidden rounded-[22px] bg-white">
 						<Link
 							href="/settings/account"
@@ -329,7 +334,8 @@ export function MailboxSelector({ initialUser }: MailboxSelectorProps = {}) {
 							<Link
 								href="/admin"
 								onClick={() => setOpen(false)}
-								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] ${adminActive ? "bg-blue-50" : ""}`}
+								// On phones the Mail/Admin switch above already leads here.
+								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] max-md:hidden ${adminActive ? "bg-blue-50" : ""}`}
 							>
 								<ShieldCheck size={18} className="text-neutral-600" />
 								{t("account.admin")}
