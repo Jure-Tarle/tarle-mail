@@ -137,7 +137,9 @@ export function startSmtpListener(
 					}
 				}
 				if (rejectReason) {
-					callback(Object.assign(new Error(rejectReason), { responseCode: 550 }));
+					// A reason that starts with its own reply code (e.g. "552 5.2.2 Mailbox full") keeps that code.
+					const code = /^([45]\d\d)\s+(.*)$/s.exec(rejectReason);
+					callback(Object.assign(new Error(code ? code[2] : rejectReason), { responseCode: code ? Number(code[1]) : 550 }));
 					return;
 				}
 				callback();
