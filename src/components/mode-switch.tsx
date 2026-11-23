@@ -38,11 +38,17 @@ function remember(mode: AppMode, pathname: string) {
 	listeners.forEach((listener) => listener());
 }
 
-function ModeLink({ mode, active, label }: { mode: AppMode; active: boolean; label: string }) {
+/** Where a mode opens: the last page visited in it, or its start page. */
+export function useModeHref(mode: AppMode): string {
 	const remembered = useSyncExternalStore(subscribe, () => readRemembered(mode), () => null);
+	return resolveModeHref(mode, remembered);
+}
+
+function ModeLink({ mode, active, label }: { mode: AppMode; active: boolean; label: string }) {
+	const href = useModeHref(mode);
 	return (
 		<Link
-			href={resolveModeHref(mode, remembered)}
+			href={href}
 			aria-current={active ? "page" : undefined}
 			className={clsx(
 				"flex h-7 items-center rounded-full px-3 text-[13px] font-medium transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none",

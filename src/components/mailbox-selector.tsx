@@ -3,11 +3,11 @@ import { alertDialog, confirmDestructive } from "@/components/ui/confirm-dialog"
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, LogOut, Settings, ShieldCheck, UserPlus, UserRound } from "@/components/icons";
+import { Check, LogOut, Mail, Settings, ShieldCheck, UserPlus, UserRound } from "@/components/icons";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDismissible } from "@/components/use-dismissible";
 import { AppsMenu } from "@/components/apps-menu";
-import { ModeSwitch } from "@/components/mode-switch";
+import { useModeHref } from "@/components/mode-switch";
 import { useLanguage } from "@/components/language-provider";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { ProgressiveAvatarImage } from "@/components/progressive-avatar-image";
@@ -104,6 +104,7 @@ export function MailboxSelector({ initialUser }: MailboxSelectorProps = {}) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const mailHref = useModeHref("mail");
 	const [user, setUser] = useState<MailboxSelectorUser | null>(initialUser ?? null);
 	const [hasAvatar, setHasAvatar] = useState(!!initialUser?.hasAvatar);
 	const [avatarUrl, setAvatarUrl] = useState("/api/profile/avatar");
@@ -317,10 +318,6 @@ export function MailboxSelector({ initialUser }: MailboxSelectorProps = {}) {
 						</div>
 					</div>
 
-					{/* The phone header has no room for the Mail/Admin switch, so on phones it lives here. */}
-					<div className="mt-2 flex justify-center md:hidden" onClick={() => setOpen(false)}>
-						<ModeSwitch />
-					</div>
 					<div className="mt-2 overflow-hidden rounded-[22px] bg-white">
 						<Link
 							href="/settings/account"
@@ -330,12 +327,23 @@ export function MailboxSelector({ initialUser }: MailboxSelectorProps = {}) {
 							<Settings size={18} className="text-neutral-600" />
 							{t("account.settings")}
 						</Link>
+						{/* The phone header has no room for the Mail/Admin switch, so on phones both are plain rows here. */}
+						{user?.role === "admin" && (
+							<Link
+								href={mailHref}
+								onClick={() => setOpen(false)}
+								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] md:hidden ${adminActive ? "" : "bg-blue-50"}`}
+							>
+								<Mail size={18} className="text-neutral-600" />
+								{t("navigation.modeMail")}
+								{!adminActive && <Check className="ml-auto h-4 w-4 text-blue-600" />}
+							</Link>
+						)}
 						{user?.role === "admin" && (
 							<Link
 								href="/admin"
 								onClick={() => setOpen(false)}
-								// On phones the Mail/Admin switch above already leads here.
-								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] max-md:hidden ${adminActive ? "bg-blue-50" : ""}`}
+								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] ${adminActive ? "bg-blue-50" : ""}`}
 							>
 								<ShieldCheck size={18} className="text-neutral-600" />
 								{t("account.admin")}

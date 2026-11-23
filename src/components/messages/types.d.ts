@@ -56,7 +56,8 @@ export type MessageSplitLayoutProps = {
 
 export type MessageListVisibility = {
 	visible: boolean;
-	toggle: () => void;
+	/** Brings the list back after it was hidden, so the next opened email shows beside it again. */
+	showList: () => void;
 	singleColumn: boolean;
 	backHref: string;
 	backLabel: string;
