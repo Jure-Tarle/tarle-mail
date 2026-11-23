@@ -1,0 +1,2 @@
+# macOS Finder metadata must never be served as a public asset.
+.DS_Store
