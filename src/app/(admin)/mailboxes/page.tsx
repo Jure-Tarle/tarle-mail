@@ -3,9 +3,9 @@
 import { mobilePrimaryActionClass } from "@/components/page-header-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Plus } from "@/components/icons";
+import { Plus, Search } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,11 @@ export default function MailboxesPage() {
 	const { t } = useLanguage();
 	const qc = useQueryClient();
 	const router = useRouter();
-	const base = getMailboxesBase(usePathname());
+	const pathname = usePathname();
+	const base = getMailboxesBase(pathname);
+	// The domain filter lives in the URL, so it survives opening a mailbox and coming back.
+	const domainFilter = useSearchParams().get("domain") ?? "";
+	const [query, setQuery] = useState("");
 	const [displayName, setDisplayName] = useState("");
 	const [localPart, setLocalPart] = useState("");
 	const [domainId, setDomainId] = useState("");
@@ -126,6 +130,21 @@ export default function MailboxesPage() {
 	const domainMap = new Map(
 		(domains.data?.domains ?? []).map((d) => [d.id, d.hostname]),
 	);
+	const allMailboxes = (mailboxes.data?.mailboxes ?? []).map((mailbox) => ({
+		...mailbox,
+		hostname: mailbox.hostname ?? domainMap.get(mailbox.domainId) ?? "?",
+	}));
+	const domainCounts = new Map<string, number>();
+	for (const mailbox of allMailboxes) domainCounts.set(mailbox.hostname, (domainCounts.get(mailbox.hostname) ?? 0) + 1);
+	const domainOptions = [...domainCounts.keys()].sort((a, b) => a.localeCompare(b));
+	const activeDomain = domainCounts.has(domainFilter) ? domainFilter : "";
+	const needle = query.trim().toLowerCase();
+	const visibleMailboxes = allMailboxes.filter((mailbox) =>
+		(!activeDomain || mailbox.hostname === activeDomain)
+		&& (!needle || getMailboxName(mailbox).toLowerCase().includes(needle) || getMailboxAddress(mailbox).toLowerCase().includes(needle)));
+	const chooseDomain = (hostname: string) => {
+		router.replace(hostname ? `${pathname}?domain=${encodeURIComponent(hostname)}` : pathname, { scroll: false });
+	};
 	const mailboxOwners = [...(accounts.data?.accounts ?? [])];
 	if (account.data?.user?.id && !mailboxOwners.some((owner) => owner.id === account.data?.user?.id)) {
 		mailboxOwners.unshift({
@@ -244,6 +263,40 @@ export default function MailboxesPage() {
 				</Dialog>
 			</div>
 			<section className="space-y-3">
+				{allMailboxes.length > 0 && (
+					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+						{domainOptions.length > 1 ? (
+							<div role="group" aria-label={t("mailboxes.filterByDomain")} className="flex min-w-0 flex-wrap gap-2">
+								{["", ...domainOptions].map((hostname) => {
+									const active = hostname === activeDomain;
+									return (
+										<button
+											key={hostname || "all"}
+											type="button"
+											aria-pressed={active}
+											onClick={() => chooseDomain(hostname)}
+											className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors ${active ? "bg-blue-600 text-white" : "bg-white text-neutral-700 hover:bg-neutral-100 max-md:bg-neutral-100"}`}
+										>
+											{hostname || t("mailboxes.allDomains")}
+											<span className={`tabular-nums ${active ? "opacity-80" : "text-neutral-500"}`}>{hostname ? domainCounts.get(hostname) : allMailboxes.length}</span>
+										</button>
+									);
+								})}
+							</div>
+						) : <span />}
+						<label className="flex h-9 w-full items-center gap-2 rounded-full bg-white px-3.5 text-sm max-md:bg-neutral-100 md:w-72">
+							<Search className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+							<input
+								type="search"
+								value={query}
+								onChange={(event) => setQuery(event.target.value)}
+								placeholder={t("mailboxes.searchPlaceholder")}
+								aria-label={t("mailboxes.searchPlaceholder")}
+								className="min-w-0 flex-1 bg-transparent text-neutral-900 outline-none placeholder:text-neutral-500"
+							/>
+						</label>
+					</div>
+				)}
 				{/* <div className="flex items-center justify-between">
 					<span className="text-sm text-neutral-500">
 						{(mailboxes.data?.mailboxes ?? []).length} total
@@ -257,7 +310,12 @@ export default function MailboxesPage() {
 						{t("mailboxes.none")}
 					</p>
 				)}
-				<List>
+				{allMailboxes.length > 0 && visibleMailboxes.length === 0 && (
+					<p className="rounded-2xl bg-white px-5 py-4 text-sm text-neutral-500">
+						{t("mailboxes.noMatch")}
+					</p>
+				)}
+				{visibleMailboxes.length > 0 && <List>
 					<div className={`${COLUMNS} bg-white px-5 py-3 text-xs font-medium uppercase text-neutral-500`}>
 						<span className="w-10" />
 						<span>{t("common.name")}</span>
@@ -265,11 +323,8 @@ export default function MailboxesPage() {
 						<span className="hidden md:block">{t("accounts.colStatus")}</span>
 						<span className="hidden md:block">{t("accounts.colLastSignIn")}</span>
 					</div>
-					{(mailboxes.data?.mailboxes ?? []).map((mailbox) => {
-						const mailboxWithHostname = {
-							...mailbox,
-							hostname: mailbox.hostname ?? domainMap.get(mailbox.domainId) ?? "?",
-						};
+					{visibleMailboxes.map((mailboxWithHostname) => {
+						const mailbox = mailboxWithHostname;
 
 						return (
 							<ListRow key={mailbox.id} asChild className={`${COLUMNS} px-5 py-4`}>
@@ -314,7 +369,7 @@ export default function MailboxesPage() {
 							</ListRow>
 						);
 					})}
-				</List>
+				</List>}
 			</section>
 		</div>
 	);
