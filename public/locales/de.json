@@ -1271,6 +1271,8 @@
 	"mailboxes.filter.status.pendingDeletion": "Löschung geplant",
 	"mailboxes.filter.reset": "Filter zurücksetzen",
 	"mailboxes.noMatch": "Kein Postfach passt zu diesem Filter.",
+	"mailboxes.sort.asc": "aufsteigend sortiert",
+	"mailboxes.sort.desc": "absteigend sortiert",
 	"mailboxes.profileAlt": "Profil von {name}",
 	"mailboxes.shared": "Gemeinsam",
 	"mailbox.title": "Einstellungen",

@@ -1271,6 +1271,8 @@
 	"mailboxes.filter.status.pendingDeletion": "Scheduled for deletion",
 	"mailboxes.filter.reset": "Reset filters",
 	"mailboxes.noMatch": "No mailbox matches this filter.",
+	"mailboxes.sort.asc": "sorted ascending",
+	"mailboxes.sort.desc": "sorted descending",
 	"mailboxes.profileAlt": "{name} की प्रोफ़ाइल",
 	"mailboxes.shared": "साझा",
 	"mailbox.title": "सेटिंग",

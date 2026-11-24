@@ -4,8 +4,8 @@ import { mobilePrimaryActionClass } from "@/components/page-header-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Plus, Search } from "@/components/icons";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Copy, Plus, Search } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,8 @@ import { ProgressiveAvatarImage } from "@/components/progressive-avatar-image";
 import { authFetch } from "@/lib/auth/client";
 import type { CurrentAccountResponse, Domain, MailboxOwner, MailboxesResponse } from "./types";
 import { formatAccountDateTime } from "../accounts/utils";
-import { getMailboxAddress, getMailboxesBase, getMailboxName } from "./utils";
+import { Tooltip } from "@/components/ui/tooltip";
+import { getMailboxAddress, getMailboxesBase, getMailboxName, sortMailboxes, type MailboxSort, type MailboxSortKey } from "./utils";
 import { MailboxFilterMenu, type MailboxFilter } from "./mailbox-filter-menu";
 import { MailboxDomainChips } from "./mailbox-domain-chips";
 
@@ -166,13 +167,54 @@ export default function MailboxesPage() {
 		&& (!filter.type || (mailbox.type ?? "personal") === filter.type)
 		&& (!filter.status || (mailbox.status ?? "active") === filter.status)
 		&& (!needle || getMailboxName(mailbox).toLowerCase().includes(needle) || getMailboxAddress(mailbox).toLowerCase().includes(needle)));
-	const applyFilter = (next: MailboxFilter) => {
-		const params = new URLSearchParams();
-		if (next.domain) params.set("domain", next.domain);
-		if (next.type) params.set("type", next.type);
-		if (next.status) params.set("status", next.status);
+	const updateParams = (changes: Record<string, string>) => {
+		const params = new URLSearchParams(searchParams.toString());
+		for (const [key, value] of Object.entries(changes)) {
+			if (value) params.set(key, value);
+			else params.delete(key);
+		}
 		const queryString = params.toString();
 		router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+	};
+	const applyFilter = (next: MailboxFilter) => updateParams({ domain: next.domain, type: next.type, status: next.status });
+	// Sorting lives in the URL as well; without it the list keeps the server's order.
+	const SORT_KEYS: MailboxSortKey[] = ["name", "type", "status", "lastSignIn"];
+	const requestedSort = searchParams.get("sort");
+	const sort: MailboxSort | null = SORT_KEYS.includes(requestedSort as MailboxSortKey)
+		? { key: requestedSort as MailboxSortKey, dir: searchParams.get("dir") === "desc" ? "desc" : "asc" }
+		: null;
+	const sortedMailboxes = sort
+		? sortMailboxes(visibleMailboxes, sort, { personal: t("mailboxes.personalInbox"), shared: t("mailboxes.sharedInbox") })
+		: visibleMailboxes;
+	const toggleSort = (key: MailboxSortKey) => {
+		const dir = sort?.key === key && sort.dir === "asc" ? "desc" : "asc";
+		updateParams({ sort: key, dir: dir === "desc" ? "desc" : "" });
+	};
+	const [copiedId, setCopiedId] = useState<string | null>(null);
+	useEffect(() => {
+		if (!copiedId) return;
+		const timer = setTimeout(() => setCopiedId(null), 1600);
+		return () => clearTimeout(timer);
+	}, [copiedId]);
+	const copyAddress = (id: string, address: string) => {
+		navigator.clipboard.writeText(address).then(() => setCopiedId(id)).catch(() => undefined);
+	};
+	const sortHeader = (key: MailboxSortKey, label: string, className = "") => {
+		const active = sort?.key === key;
+		const Icon = !active ? ChevronsUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+		return (
+			<span className={className}>
+				<button
+					type="button"
+					onClick={() => toggleSort(key)}
+					className={`group/sort -mx-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 uppercase hover:bg-neutral-100 hover:text-neutral-800 ${active ? "text-neutral-900" : ""}`}
+				>
+					{label}
+					{active && <span className="sr-only">, {t(sort.dir === "asc" ? "mailboxes.sort.asc" : "mailboxes.sort.desc")}</span>}
+					<Icon className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-0 group-hover/sort:opacity-60 group-focus-visible/sort:opacity-60"}`} aria-hidden="true" />
+				</button>
+			</span>
+		);
 	};
 	const mailboxOwners = [...(accounts.data?.accounts ?? [])];
 	if (account.data?.user?.id && !mailboxOwners.some((owner) => owner.id === account.data?.user?.id)) {
@@ -336,56 +378,66 @@ export default function MailboxesPage() {
 					</p>
 				)}
 				{visibleMailboxes.length > 0 && <List>
-					<div className={`${COLUMNS} bg-white px-5 py-3 text-xs font-medium uppercase text-neutral-500`}>
+					<div className={`${COLUMNS} bg-white px-5 py-2 text-xs font-medium uppercase text-neutral-500`}>
 						<span className="w-10" />
-						<span>{t("common.name")}</span>
-						<span className="hidden md:block">{t("mailboxes.type")}</span>
-						<span className="hidden md:block">{t("accounts.colStatus")}</span>
-						<span className="hidden md:block">{t("accounts.colLastSignIn")}</span>
+						{sortHeader("name", t("common.name"))}
+						{sortHeader("type", t("mailboxes.type"), "hidden md:block")}
+						{sortHeader("status", t("accounts.colStatus"), "hidden md:block")}
+						{sortHeader("lastSignIn", t("accounts.colLastSignIn"), "hidden md:block")}
 					</div>
-					{visibleMailboxes.map((mailboxWithHostname) => {
+					{sortedMailboxes.map((mailboxWithHostname) => {
 						const mailbox = mailboxWithHostname;
 
 						return (
-							<ListRow key={mailbox.id} asChild className={`${COLUMNS} px-5 py-4`}>
-								<Link
-									href={`${base}/${mailbox.id}`}
-									className="group transition-colors hover:bg-blue-50/40"
-								>
-									<span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-										{getMailboxName(mailboxWithHostname).trim().charAt(0).toUpperCase() || "?"}
-										{mailbox.hasAvatar && (
-											<ProgressiveAvatarImage
-												src={`/api/mailboxes/${mailbox.id}/avatar`}
-												alt={t("mailboxes.profileAlt", { name: getMailboxName(mailboxWithHostname) })}
-												className="absolute inset-0 h-full w-full object-cover"
-											/>
-										)}
-									</span>
-									<span className="min-w-0">
-										<span className="flex min-w-0 items-center gap-2">
-											<span className="block truncate text-sm font-semibold text-neutral-900">
-												{getMailboxName(mailboxWithHostname)}
-											</span>
-										</span>
-										<span className="block truncate no-font-mono text-sm text-neutral-500">
+							<ListRow key={mailbox.id} className={`${COLUMNS} relative px-5 py-4 transition-colors hover:bg-blue-50/40`}>
+								<span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+									{getMailboxName(mailboxWithHostname).trim().charAt(0).toUpperCase() || "?"}
+									{mailbox.hasAvatar && (
+										<ProgressiveAvatarImage
+											src={`/api/mailboxes/${mailbox.id}/avatar`}
+											alt={t("mailboxes.profileAlt", { name: getMailboxName(mailboxWithHostname) })}
+											className="absolute inset-0 h-full w-full object-cover"
+										/>
+									)}
+								</span>
+								<span className="min-w-0">
+									{/* The name link stretches over the whole row, so the row opens the mailbox; the copy
+									    button sits above it and copies the address instead. */}
+									<Link
+										href={`${base}/${mailbox.id}`}
+										className="block truncate text-sm font-semibold text-neutral-900 outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-blue-500/60"
+									>
+										{getMailboxName(mailboxWithHostname)}
+									</Link>
+									<span className="flex min-w-0 items-center gap-1">
+										<span className="min-w-0 truncate no-font-mono text-sm text-neutral-500">
 											{getMailboxAddress(mailboxWithHostname)}
 										</span>
+										<Tooltip label={copiedId === mailbox.id ? t("common.copied") : t("common.copy")} className="relative z-10 inline-flex shrink-0">
+											<button
+												type="button"
+												onClick={() => copyAddress(mailbox.id, getMailboxAddress(mailboxWithHostname))}
+												aria-label={copiedId === mailbox.id ? t("common.copied") : t("common.copyLabel", { label: getMailboxAddress(mailboxWithHostname) })}
+												className="-my-1 flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 max-md:h-9 max-md:w-9"
+											>
+												{copiedId === mailbox.id ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+											</button>
+										</Tooltip>
 									</span>
-									<span className="hidden md:block">
-										<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${mailbox.type === "shared" ? "bg-blue-50 text-blue-700" : "bg-neutral-100 text-neutral-600"}`}>
-											{mailbox.type === "shared" ? t("mailboxes.sharedInbox") : t("mailboxes.personalInbox")}
-										</span>
+								</span>
+								<span className="hidden md:block">
+									<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${mailbox.type === "shared" ? "bg-blue-50 text-blue-700" : "bg-neutral-100 text-neutral-600"}`}>
+										{mailbox.type === "shared" ? t("mailboxes.sharedInbox") : t("mailboxes.personalInbox")}
 									</span>
-									<span className="hidden md:block">
-										<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[mailbox.status ?? "active"]}`}>
-											{t(`accounts.status.${mailbox.status ?? "active"}`, { date: "" })}
-										</span>
+								</span>
+								<span className="hidden md:block">
+									<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[mailbox.status ?? "active"]}`}>
+										{t(`accounts.status.${mailbox.status ?? "active"}`, { date: "" })}
 									</span>
-									<span className="hidden text-sm text-neutral-500 md:block">
-										{mailbox.type === "shared" ? "—" : mailbox.lastSignInAt ? formatAccountDateTime(mailbox.lastSignInAt) : t("accounts.neverSignedIn")}
-									</span>
-								</Link>
+								</span>
+								<span className="hidden text-sm text-neutral-500 md:block">
+									{mailbox.type === "shared" ? "—" : mailbox.lastSignInAt ? formatAccountDateTime(mailbox.lastSignInAt) : t("accounts.neverSignedIn")}
+								</span>
 							</ListRow>
 						);
 					})}

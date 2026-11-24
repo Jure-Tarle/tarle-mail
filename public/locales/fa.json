@@ -1271,6 +1271,8 @@
 	"mailboxes.filter.status.pendingDeletion": "Scheduled for deletion",
 	"mailboxes.filter.reset": "Reset filters",
 	"mailboxes.noMatch": "No mailbox matches this filter.",
+	"mailboxes.sort.asc": "sorted ascending",
+	"mailboxes.sort.desc": "sorted descending",
 	"mailboxes.profileAlt": "نمایه {name}",
 	"mailboxes.shared": "مشترک",
 	"mailbox.title": "تنظیمات",
