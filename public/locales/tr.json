@@ -1224,6 +1224,8 @@
 	"mailboxes.filter.status.pendingDeletion": "Scheduled for deletion",
 	"mailboxes.filter.reset": "Reset filters",
 	"mailboxes.noMatch": "No mailbox matches this filter.",
+	"mailboxes.sort.asc": "sorted ascending",
+	"mailboxes.sort.desc": "sorted descending",
 	"mailboxes.profileAlt": "{name} profili",
 	"mailboxes.shared": "Paylaşılan",
 	"mailbox.title": "Ayarlar",

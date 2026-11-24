@@ -1269,6 +1269,8 @@
 	"mailboxes.filter.status.pendingDeletion": "Scheduled for deletion",
 	"mailboxes.filter.reset": "Reset filters",
 	"mailboxes.noMatch": "No mailbox matches this filter.",
+	"mailboxes.sort.asc": "sorted ascending",
+	"mailboxes.sort.desc": "sorted descending",
 	"mailboxes.profileAlt": "{name} ప్రొఫైల్",
 	"mailboxes.shared": "షేర్ చేసినది",
 	"mailbox.title": "సెట్టింగ్‌లు",
