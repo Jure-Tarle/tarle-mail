@@ -139,10 +139,12 @@ for (const kind of ["dashboard", "api"]) {
 	});
 }
 
-test("omitted settings preserve API compatibility; opting in includes future domains", async (t) => {
+test("omitted settings keep the mailbox on its own domain; opting in includes future domains", async (t) => {
 	const f = await fixture(t);
 	assert.equal((await f.post("api")).status, 201);
-	assert.equal(f.mailbox().useAllDomains, true);
+	assert.equal(f.mailbox().useAllDomains, false);
+	assert.deepEqual(await getMailboxDomainAddresses(f.db, f.mailbox()), ["sam@one.test"]);
+	f.database.db.exec("UPDATE mailboxes SET use_all_domains = 1");
 	assert.deepEqual(await getMailboxDomainAddresses(f.db, f.mailbox()), ["sam@one.test", "sam@two.test"]);
 	f.database.db.exec("INSERT INTO domains (id, user_id, hostname, zone_id, status, created_at) VALUES ('later', 'admin', 'later.test', 'manual', 'active', 1)");
 	assert.equal((await resolveInboundAddress(f.db, "sam@later.test")).mailbox.mailboxId, f.mailbox().id);
