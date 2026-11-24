@@ -17,6 +17,9 @@ const BASE_STYLE = `
 :host(.mf-dense) p { margin-top:0; }
 `;
 
+/** Below this an email stays at this scale and scrolls sideways, because the text would be too small. */
+const MIN_FIT_SCALE = 0.5;
+
 export function EmailHtmlRenderer({ html, className, dense = false, preserveLeadingQuote = false, autoAllowRemote = false, onAllowRemote }: {
 	html: string; className?: string;
 	/** Tighter block spacing for short internal text such as notes. */
@@ -61,6 +64,26 @@ export function EmailHtmlRenderer({ html, className, dense = false, preserveLead
 		const mailBody = root.querySelector(prepared.bodyTag);
 		// An LTR scroller cannot reach left-side overflow from an RTL email.
 		if (mailBody) host.current.dir = window.getComputedStyle(mailBody).direction;
+		// Newsletters are often laid out for a fixed width (600px tables, wide banners). Like Apple Mail
+		// and Gmail, shrink such an email to fit the reading pane instead of scrolling it sideways; the
+		// scroller stays only for the rare email that would become unreadably small.
+		const hostElement = host.current;
+		const mailRoot = root.querySelector<HTMLElement>(prepared.rootTag);
+		let fittedWidth = -1;
+		const fit = () => {
+			if (!mailRoot) return;
+			const available = hostElement.clientWidth;
+			mailRoot.style.zoom = "";
+			const natural = mailRoot.scrollWidth;
+			fittedWidth = available;
+			if (!available || natural <= available + 1) return;
+			mailRoot.style.zoom = String(Math.max(MIN_FIT_SCALE, available / natural));
+		};
+		fit();
+		// Re-fit when the pane changes width, and when images arrive and widen the layout.
+		const resize = new ResizeObserver(() => { if (hostElement.clientWidth !== fittedWidth) fit(); });
+		resize.observe(hostElement);
+		root.addEventListener("load", fit, true);
 		// Document fragment navigation does not automatically find IDs inside a shadow tree.
 		const navigate = (event: Event) => {
 			const target = event.target as Element | null;
@@ -75,7 +98,11 @@ export function EmailHtmlRenderer({ html, className, dense = false, preserveLead
 			} catch { /* Ignore malformed fragments. */ }
 		};
 		root.addEventListener("click", navigate);
-		return () => root.removeEventListener("click", navigate);
+		return () => {
+			root.removeEventListener("click", navigate);
+			root.removeEventListener("load", fit, true);
+			resize.disconnect();
+		};
 	}, [html, allowRemote, preserveLeadingQuote, quoteToggleLabel]);
 	return <div className={`min-w-0 max-w-full ${className ?? ""}`}>
 		{hasRemote && <div className="mb-2 flex justify-end">
