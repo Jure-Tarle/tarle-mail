@@ -12,6 +12,7 @@ import { useIsDesktop, useIsWide } from "@/components/sidebar-mobile-utils";
 import { readColumnWidth, readInitialColumnWidth, saveColumnWidth } from "@/components/column-width-preferences";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { BulkMessageActionBar } from "./bulk-message-action-bar";
+import { CommandBarContext } from "./command-bar";
 import { MessageFolderPage } from "./message-folder-page";
 import { MessageDetailNavigationProvider } from "./message-detail-navigation";
 import { MessageListStateContext } from "./message-list-state";
@@ -38,6 +39,7 @@ export function MessageSplitLayout({
 	const [manualListVisible, setManualListVisible] = useState(true);
 	const [twoColumnReading] = useTwoColumnReading();
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [barTarget, setBarTarget] = useState<HTMLDivElement | null>(null);
 	const startWidth = useRef(listWidth);
 	const resizedWidth = useRef(listWidth);
 	const { t } = useLanguage();
@@ -127,9 +129,27 @@ export function MessageSplitLayout({
 		);
 	}
 
+	// On the desktop one command bar spans list and message (Outlook style): it holds the open
+	// message's actions, or the bulk actions while list items are selected.
+	const showCommandBar = isDesktop && !composeDocked;
 	return (
 		<MessageListStateContext.Provider value={listState}>
-			<div ref={containerRef} className="h-full min-h-0 overflow-hidden lg:grid lg:transition-[grid-template-columns] lg:ease-in-out motion-reduce:transition-none" style={{ gridTemplateColumns: splitColumns ? `${listVisible ? renderedListWidth : 0}px minmax(0,1fr)` : "minmax(0,1fr)", transitionDuration: widthReady ? "300ms" : "0ms" }}>
+			<CommandBarContext.Provider value={showCommandBar ? { target: barTarget, suppressed: showBulkBar } : null}>
+			<div className="flex h-full min-h-0 flex-col">
+			{showCommandBar && (
+				<div className="flex h-14 shrink-0 items-center gap-1 border-b border-neutral-200 bg-white px-3">
+					{showBulkBar ? (
+						<BulkMessageActionBar
+							folder={config.folderId ? undefined : config.folder}
+							selectedMessages={selectedMessages}
+							onClearSelection={() => setSelectedMessages([])}
+						/>
+					) : (
+						<div ref={setBarTarget} className="flex min-w-0 flex-1 items-center gap-1" />
+					)}
+				</div>
+			)}
+			<div ref={containerRef} className="min-h-0 flex-1 overflow-hidden lg:grid lg:transition-[grid-template-columns] lg:ease-in-out motion-reduce:transition-none" style={{ gridTemplateColumns: splitColumns ? `${listVisible ? renderedListWidth : 0}px minmax(0,1fr)` : "minmax(0,1fr)", transitionDuration: widthReady ? "300ms" : "0ms" }}>
 				{splitColumns && (
 				<aside className={`relative hidden min-h-0 min-w-0 overflow-hidden bg-white lg:block ${listVisible ? "border-r border-neutral-200" : "pointer-events-none"}`} aria-hidden={!listVisible} inert={!listVisible}>
 					<div className={`h-full overflow-hidden transition-transform duration-300 ease-in-out motion-reduce:transition-none ${listVisible ? "translate-x-0" : "-translate-x-full"}`} style={{ width: renderedListWidth }}>
@@ -155,18 +175,13 @@ export function MessageSplitLayout({
 				<MessageListVisibilityContext.Provider value={{ visible: listVisible, showList: () => { if (manualListVisible) return; setManualListVisible(true); saveMessageListVisible(true); }, singleColumn: !twoColumnReading || !isDesktop, backHref: config.hrefPrefix, backLabel: config.titleKey ? t(config.titleKey) : config.title }}>
 				<MessageDetailNavigationProvider config={config} currentMessageId={selectedMessageId}>
 				<section className="min-h-0 min-w-0 overflow-hidden bg-white flex flex-col h-full">
-					{showBulkBar && (
-						<BulkMessageActionBar
-							folder={config.folderId ? undefined : config.folder}
-							selectedMessages={selectedMessages}
-							onClearSelection={() => setSelectedMessages([])}
-						/>
-					)}
 					{composeDocked ? <div data-compose-dock className="min-h-0 flex-1" aria-hidden="true" /> : children}
 				</section>
 				</MessageDetailNavigationProvider>
 				</MessageListVisibilityContext.Provider>
 			</div>
+			</div>
+			</CommandBarContext.Provider>
 		</MessageListStateContext.Provider>
 	);
 }

@@ -4,6 +4,7 @@ import { confirmDestructive } from "@/components/ui/confirm-dialog";
 import { authFetch } from "@/lib/auth/client";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowDownToLine, Cloud, ExternalLink } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { formatUserDate } from "@/lib/time/utils";
@@ -26,6 +27,7 @@ import { ConversationNotes } from "@/components/messages/conversation-notes";
 import { ConversationNotesProvider } from "@/components/messages/conversation-notes-context";
 import { MessageDetailNavigation } from "@/components/messages/message-detail-navigation";
 import { MessageReadingHeaderButton } from "@/components/messages/message-reading-header-button";
+import { useCommandBar } from "@/components/messages/command-bar";
 import { ScheduledSendBanner } from "@/components/messages/scheduled-send-banner";
 import { formatScheduledSendTime } from "@/components/messages/scheduled-send-utils";
 import { QuotedEmailToggle } from "@/components/messages/quoted-email-toggle";
@@ -98,6 +100,7 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
   usePageLoading(loading, true);
   const thread = useMessageThread(messageId, data?.message?.threadId);
   const assistantVisible = useAssistantOpen();
+  const commandBar = useCommandBar();
   const isAnyPanelVisible = messageListVisible || assistantVisible;
   const { scrollRef, scrolled, handleScroll } = useMessageContentScroll(messageId, loading);
   const [unsubBannerDismissed, dismissUnsubBanner] = useMailingListBanner(messageId);
@@ -274,9 +277,8 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
     : formatUserDate(message.createdAt, withTime
       ? { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }
       : { month: "short", day: "2-digit", year: "numeric" });
-  return (<ConversationNotesProvider key={message.threadId ?? message.id} messageId={message.id} emails={noteEmails}>
-
-    <div className={clsx("flex py-2 h-12 items-center px-2 border-b sticky top-0 bg-white z-40 gap-3", scrolled ? "border-neutral-200" : "border-transparent")}>
+  const headerControls = (labeled: boolean) => (
+    <>
       <MessageReadingHeaderButton />
       {/* <div className="min-w-0 flex-1" /> */}
       {/* <div className="flex items-center flex-row gap-6">
@@ -288,6 +290,7 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
 					</Link>
 				</div> */}
       <MessageActions
+        labeled={labeled}
         messageId={message.id}
         mailboxId={message.mailboxId}
         senderAddress={message.fromAddr}
@@ -304,10 +307,19 @@ function MessageDetailContent({ messageId }: { messageId: string }) {
         bodyHtml={body?.htmlBody}
       />
       <MessageDetailNavigation messageId={message.id} unread={message.direction === "inbound" && !message.read} />
+    </>
+  );
+  return (<ConversationNotesProvider key={message.threadId ?? message.id} messageId={message.id} emails={noteEmails}>
+
+    {/* On the desktop these controls live in the command bar above list and message. */}
+    {commandBar ? (commandBar.target && !commandBar.suppressed ? createPortal(headerControls(true), commandBar.target) : null) : (
+    <div className={clsx("flex py-2 h-12 items-center px-2 border-b sticky top-0 bg-white z-40 gap-3", scrolled ? "border-neutral-200" : "border-transparent")}>
+      {headerControls(false)}
     </div>
+    )}
 
     <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto overscroll-contain flex-1 min-h-0">
-      <h1 className={clsx("sm:pl-[78px] px-4 pb-2 pt-2 text-2xl text-neutral-900 sm:pr-6")} title={message.subject ?? t("list.noSubject")}>
+      <h1 className={clsx("sm:pl-[78px] px-4 pb-2 text-2xl text-neutral-900 sm:pr-6", commandBar ? "pt-5" : "pt-2")} title={message.subject ?? t("list.noSubject")}>
         {message.subject ?? t("list.noSubject")}
       </h1>
       <MessageInviteCard key={message.id} messageId={message.id} hasCalendarAttachment={!!findInviteAttachment(attachments)} className={clsx("sm:ml-[78px] mx-4 mb-3 sm:mr-6")} />

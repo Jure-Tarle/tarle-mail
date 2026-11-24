@@ -623,14 +623,20 @@ export function MessageFolderPage({
 						/>
 					</Tooltip>
 					{selectedIds.length > 0 && !compact ? (
-						<BulkMessageToolbar
-							selectedCount={selectedIds.length}
-							hasUnreadSelection={hasUnreadSelection}
-							onAction={runSelectedActionReportingErrors}
-							onClearSelection={() => setSelectedMessages([])}
-							pending={pendingBulkAction}
-							folder={config.folderId ? undefined : config.folder}
-						/>
+						<>
+							{/* Phones get a capsule at the bottom; wider screens a labelled command bar here. */}
+							{isMobile && <p className="truncate pl-1 font-semibold text-neutral-900">{t("common.selectedCount", { count: selectedIds.length })}</p>}
+							<BulkMessageToolbar
+								labeled={!isMobile}
+								capsule={isMobile}
+								selectedCount={selectedIds.length}
+								hasUnreadSelection={hasUnreadSelection}
+								onAction={runSelectedActionReportingErrors}
+								onClearSelection={() => setSelectedMessages([])}
+								pending={pendingBulkAction}
+								folder={config.folderId ? undefined : config.folder}
+							/>
+						</>
 					) : (
 						(compact || isMobile) && (
 							<p aria-hidden="true" className="truncate font-semibold text-neutral-900 pl-1">{title}</p>
