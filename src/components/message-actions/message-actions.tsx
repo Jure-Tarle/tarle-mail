@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import type { MessageActionsProps, ReplyMode } from "./types";
 import { getPermanentDeleteConfirmText, PartialDeleteError, supportsPermanentDelete } from "@/lib/messages/permanent-delete-utils";
+import { commandButtonClass } from "@/components/messages/command-bar";
 import {
 	confirmTrashWithoutUnsubscribe,
 	blockMessageContact,
@@ -39,6 +40,7 @@ import {
 } from "./utils";
 
 export function MessageActions({
+	labeled = false,
 	messageId,
 	mailboxId,
 	senderAddress,
@@ -67,6 +69,8 @@ export function MessageActions({
 	const [error, setError] = useState<string | null>(null);
 	const [visibleCount, setVisibleCount] = useState(0);
 	const actionsRef = useRef<HTMLDivElement>(null);
+	const labelMeasureRef = useRef<HTMLDivElement>(null);
+	const [showLabels, setShowLabels] = useState(false);
 	const [sourceOpen, setSourceOpen] = useState(false);
 	const [snoozeOpen, setSnoozeOpen] = useState(false);
 
@@ -394,7 +398,11 @@ export function MessageActions({
 		const row = element;
 		const groups = actionGroups ? actionGroups.split(",") : [];
 		function update() {
-			const next = getVisibleActionCount({ availableWidth: row.clientWidth, groups });
+			// Labels first: when every labelled action and the More button fit, show them all.
+			const labelledWidth = labeled ? labelMeasureRef.current?.scrollWidth ?? Infinity : Infinity;
+			const fitsLabels = labelledWidth + 48 <= row.clientWidth;
+			setShowLabels(fitsLabels);
+			const next = fitsLabels ? groups.length : getVisibleActionCount({ availableWidth: row.clientWidth, groups });
 			setVisibleCount((current) => (current === next ? current : next));
 		}
 		update();
@@ -402,33 +410,60 @@ export function MessageActions({
 		const observer = new ResizeObserver(update);
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, [actionKey, actionGroups]);
+	}, [actionKey, actionGroups, labeled]);
 
 	return (
-		<div className="ml-4 flex min-w-0 flex-1 items-center gap-2 text-neutral-600">
+		<div className={cn("relative flex min-w-0 flex-1 items-center gap-2 text-neutral-600", !labeled && "ml-4")}>
 			{error && <span role="alert" className="text-xs text-red-600">{error}</span>}
 
-			<div ref={actionsRef} className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+			{labeled && (
+				// Invisible copy of the labelled row, measured to decide whether labels fit.
+				<div ref={labelMeasureRef} aria-hidden="true" className="pointer-events-none invisible absolute flex items-center gap-1">
+					{inlineActions.map((action, index) => (
+						<Fragment key={action.id}>
+							{index === dividerIndex && <span className="mx-1 h-5 w-px shrink-0" />}
+							<span className={cn("inline-flex items-center", commandButtonClass)}>{action.icon}{action.label}</span>
+						</Fragment>
+					))}
+				</div>
+			)}
+			<div ref={actionsRef} className={cn("flex min-w-0 flex-1 items-center overflow-hidden", showLabels ? "gap-1" : "gap-2")}>
 				{inlineActions.slice(0, visibleCount).map((action, index) => {
 					const tooltip = action.hint && shortcutsEnabled ? action.hint : action.label;
 					return (
 						<Fragment key={action.id}>
 							{index === dividerIndex && (
-								<span className="mx-2 h-5 w-px shrink-0 bg-gray-200/60" aria-hidden="true" />
+								<span className={cn("h-5 w-px shrink-0 bg-neutral-200", showLabels ? "mx-1" : "mx-2 bg-gray-200/60")} aria-hidden="true" />
 							)}
-							<Tooltip label={tooltip}>
-								<Button
-									type="button"
-									variant="ghost"
-									size="roundedSM"
-									className={cn("h-8 w-8 shrink-0 p-0", action.destructive && "text-red-600 hover:text-red-700")}
-									aria-label={action.label}
-									disabled={disabled}
-									onClick={action.onSelect}
-								>
-									{action.icon}
-								</Button>
-							</Tooltip>
+							{showLabels ? (
+								<Tooltip label={action.hint && shortcutsEnabled ? action.hint : null}>
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										className={cn(commandButtonClass, action.destructive && "text-red-600 hover:text-red-700 [&_svg]:text-red-600")}
+										disabled={disabled}
+										onClick={action.onSelect}
+									>
+										{action.icon}
+										{action.label}
+									</Button>
+								</Tooltip>
+							) : (
+								<Tooltip label={tooltip}>
+									<Button
+										type="button"
+										variant="ghost"
+										size="roundedSM"
+										className={cn("h-8 w-8 shrink-0 p-0", action.destructive && "text-red-600 hover:text-red-700")}
+										aria-label={action.label}
+										disabled={disabled}
+										onClick={action.onSelect}
+									>
+										{action.icon}
+									</Button>
+								</Tooltip>
+							)}
 						</Fragment>
 					);
 				})}

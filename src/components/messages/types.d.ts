@@ -72,6 +72,10 @@ export type BulkMessageToolbarProps = {
 	pending: boolean;
 	/** Folder being listed; archived, spam and trash offer a way back instead of the same move. */
 	folder?: MessageFolder;
+	/** Command bar look: buttons carry their labels and the count sits in a pill on the right. */
+	labeled?: boolean;
+	/** Phone look: a floating capsule at the bottom of the screen. */
+	capsule?: boolean;
 };
 
 export type SelectedMessage = Pick<Message, "id" | "read">;

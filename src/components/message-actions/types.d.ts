@@ -4,6 +4,8 @@ import type { Message, MessageDirection } from "@/hooks/types";
 import { IconNode } from "@/components/icons";
 
 export type MessageActionsProps = {
+	/** In the desktop command bar: actions carry their labels while they fit. */
+	labeled?: boolean;
 	messageId: string;
 	mailboxId: string | null;
 	senderAddress: string;

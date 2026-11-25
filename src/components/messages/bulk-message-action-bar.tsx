@@ -9,8 +9,8 @@ import { PartialDeleteError } from "@/lib/messages/permanent-delete-utils";
 import { runBulkMessageAction } from "./utils";
 
 /**
- * Bulk actions for a selection whose messages are listed in the split-view
- * sidebar. It sits above the focused message instead of replacing it.
+ * Bulk actions for a selection made in the split-view list. They fill the command bar above list
+ * and message, in place of the open message's actions.
  */
 export function BulkMessageActionBar({
 	folder,
@@ -46,10 +46,11 @@ export function BulkMessageActionBar({
 		<div
 			role="region"
 			aria-label={t("common.selectedCount", { count: selectedMessages.length })}
-			className="shrink-0 border-b border-blue-100 bg-blue-50/50 px-3 py-2"
+			className="flex min-w-0 flex-1 items-center gap-2"
 		>
-			<div className="min-w-0 overflow-x-auto">
+			<div className="flex min-w-0 flex-1">
 				<BulkMessageToolbar
+					labeled
 					selectedCount={selectedMessages.length}
 					hasUnreadSelection={hasUnreadSelection}
 					onAction={runAction}
@@ -58,7 +59,7 @@ export function BulkMessageActionBar({
 					folder={folder}
 				/>
 			</div>
-			{error && <p role="alert" className="mt-1 text-sm font-medium text-red-700">{error}</p>}
+			{error && <p role="alert" className="shrink-0 text-sm font-medium text-red-700">{error}</p>}
 		</div>
 	);
 }
